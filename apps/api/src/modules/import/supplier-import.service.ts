@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ImportJob, ImportJobDocument } from './schemas/import-job.schema';
 import { ExcelParser } from './parsers/excel.parser';
+import { SupplierParserRegistry } from './parsers/suppliers/supplier-parser.registry';
+import { ParsedSupplierRow } from './parsers/suppliers/supplier-parser.interface';
 import { SupplierProductsService } from '../supplier-products/supplier-products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { MappingSettingsService } from '../mapping-settings/mapping-settings.service';
@@ -27,13 +29,16 @@ export class SupplierImportService {
     @InjectModel(SupplierProduct.name)
     private supplierProductModel: Model<SupplierProduct>,
     private excelParser: ExcelParser,
+    private parserRegistry: SupplierParserRegistry,
     private supplierProductsService: SupplierProductsService,
     private suppliersService: SuppliersService,
     private mappingSettingsService: MappingSettingsService,
   ) {}
 
   /**
-   * Step 1: Upload & parse Excel file for supplier products
+   * Step 1: Upload & parse file for supplier products.
+   * If the supplier has a `parserKey`, a specific parser is used and no column
+   * mapping is required — data is parsed directly into the preview.
    */
   async uploadAndParse(
     file: Express.Multer.File,
@@ -41,13 +46,61 @@ export class SupplierImportService {
     userId: string,
     sheetName?: string,
   ) {
-    // Verify supplier exists
-    await this.suppliersService.findById(supplierId);
+    const supplier = await this.suppliersService.findById(supplierId);
+    const parser = this.parserRegistry.get(supplier.parserKey);
 
+    if (parser) {
+      const parsed = await parser.parse(file.buffer, { sheetName });
+      if (parsed.rows.length === 0) {
+        const detail = parsed.warnings?.slice(0, 3).map((w) => w.message).join(' | ');
+        throw new BadRequestException(
+          detail
+            ? `El parser no extrajo productos del archivo. Detalle: ${detail}`
+            : 'El parser no extrajo productos del archivo',
+        );
+      }
+
+      const previewData = parsed.rows.map((row, i) => ({
+        rowNumber: i + 1,
+        data: this.rowToData(row) as Record<string, unknown>,
+        status: 'valid' as const,
+      }));
+
+      const job = await this.importJobModel.create({
+        fileName: file.filename || file.originalname,
+        originalName: file.originalname,
+        status: ImportStatus.PREVIEW,
+        importType: 'supplier_products',
+        supplierId: new Types.ObjectId(supplierId),
+        totalRows: parsed.rows.length,
+        validRows: parsed.rows.length,
+        errorRows: 0,
+        duplicateRows: 0,
+        previewData,
+        uploadedBy: userId,
+      });
+
+      return {
+        jobId: job._id,
+        parserKey: supplier.parserKey,
+        autoParsed: true,
+        sheetNames: [] as string[],
+        headers: [] as string[],
+        autoMapping: {} as Record<string, string>,
+        totalRows: parsed.rows.length,
+        sampleRows: previewData.slice(0, 5).map((p) => p.data),
+        warnings: parsed.warnings,
+      };
+    }
+
+    // Generic flow (no supplier-specific parser): require column mapping
     const sheetNames = await this.excelParser.getSheetNames(file.buffer);
     const parsed = await this.excelParser.parse(file.buffer, sheetName);
     if (parsed.totalRows === 0) {
-      throw new BadRequestException('El archivo no contiene datos');
+      throw new BadRequestException(
+        'El archivo no contiene datos con formato tabular estándar. ' +
+        'Si el proveedor usa un formato especial, asignale un "Formato de lista de precios" desde la pantalla de Proveedores.',
+      );
     }
 
     const autoMapping = this.autoDetectSupplierMapping(parsed.headers);
@@ -65,11 +118,26 @@ export class SupplierImportService {
 
     return {
       jobId: job._id,
+      autoParsed: false,
       sheetNames,
       headers: parsed.headers,
       autoMapping,
       totalRows: parsed.totalRows,
       sampleRows: parsed.rows.slice(0, 5),
+    };
+  }
+
+  private rowToData(row: ParsedSupplierRow): Record<string, any> {
+    return {
+      supplierSku: row.supplierSku,
+      supplierName: row.supplierName,
+      supplierDescription: row.supplierDescription,
+      supplierCategory: row.supplierCategory,
+      color: row.color,
+      basePrice: row.basePrice,
+      discountPercent: row.discountPercent ?? 0,
+      currency: row.currency,
+      metadata: row.metadata,
     };
   }
 
@@ -151,8 +219,11 @@ export class SupplierImportService {
           supplierName: data.supplierName,
           supplierDescription: data.supplierDescription,
           supplierCategory: data.supplierCategory,
+          color: data.color,
           basePrice: data.basePrice ?? 0,
           discountPercent: data.discountPercent ?? 0,
+          currency: data.currency,
+          metadata: data.metadata,
         });
 
         if (isNew) {
@@ -254,6 +325,7 @@ export class SupplierImportService {
             sku: sp.supplierSku.toUpperCase(),
             name: sp.supplierName,
             description: sp.supplierDescription,
+            color: sp.color,
             selectedSupplierProductId: sp._id,
             selectedCost: sp.netCost,
             profitMarginPercent: settings.defaultProfitMargin,

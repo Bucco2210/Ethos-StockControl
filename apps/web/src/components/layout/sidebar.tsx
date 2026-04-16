@@ -14,6 +14,7 @@ import {
   Moon,
   Building2,
   Layers,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
@@ -33,6 +34,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: Permission.PRODUCTS_READ },
   { name: 'Stock', href: '/stock', icon: BarChart3, permission: Permission.STOCK_READ },
+  { name: 'Kardex', href: '/kardex', icon: ClipboardList, permission: Permission.KARDEX_READ },
   { name: 'Productos', href: '/products', icon: Package, permission: Permission.PRODUCTS_READ },
   { name: 'Unificados', href: '/unified-products', icon: Layers, permission: Permission.PRODUCTS_READ },
   { name: 'Familias', href: '/families', icon: FolderTree, permission: Permission.FAMILIES_READ },
@@ -60,7 +62,7 @@ export function Sidebar() {
     <aside className="hidden md:flex w-64 flex-col border-r bg-card">
       {/* Logo */}
       <div className="p-6 border-b">
-        <h2 className="text-xl font-bold tracking-tight">Ethos Stock</h2>
+        <h2 className="text-xl font-bold tracking-tight">B&amp;B Gestion</h2>
       </div>
 
       {/* Navigation */}

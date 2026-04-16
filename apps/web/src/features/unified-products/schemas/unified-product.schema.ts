@@ -4,6 +4,7 @@ export const unifiedProductSchema = z.object({
   sku: z.string().min(1, 'El SKU es requerido'),
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
+  color: z.string().optional(),
   familyId: z.string().optional(),
   subfamilyId: z.string().optional(),
   stock: z.number().min(0).optional(),
@@ -21,6 +22,7 @@ export interface SupplierProductRef {
   _id: string;
   supplierSku: string;
   supplierName: string;
+  color?: string;
   basePrice: number;
   discountPercent: number;
   netCost: number;
@@ -35,6 +37,7 @@ export interface UnifiedProduct {
   sku: string;
   name: string;
   description?: string;
+  color?: string;
   familyId?: {
     _id: string;
     name: string;
@@ -65,6 +68,7 @@ export interface MappingSuggestion {
     _id: string;
     supplierSku: string;
     supplierName: string;
+    color?: string;
     basePrice: number;
     discountPercent: number;
     netCost: number;

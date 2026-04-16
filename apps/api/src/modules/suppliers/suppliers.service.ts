@@ -22,11 +22,24 @@ export class SuppliersService {
     }
 
     const data: Partial<Supplier> = { ...dto };
+    if (!data.code || !data.code.trim()) {
+      data.code = await this.generateNextCode();
+    }
     if (userId) {
       data.createdBy = new Types.ObjectId(userId);
     }
 
     return this.supplierModel.create(data);
+  }
+
+  private async generateNextCode(): Promise<string> {
+    const count = await this.supplierModel.countDocuments();
+    for (let i = count + 1; i < count + 1000; i++) {
+      const candidate = `PROV-${String(i).padStart(3, '0')}`;
+      const exists = await this.supplierModel.findOne({ code: candidate });
+      if (!exists) return candidate;
+    }
+    return `PROV-${Date.now()}`;
   }
 
   async findAll(): Promise<SupplierDocument[]> {

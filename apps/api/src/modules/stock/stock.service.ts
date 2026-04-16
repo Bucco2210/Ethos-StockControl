@@ -2,6 +2,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
@@ -9,7 +11,8 @@ import { StockMovement, StockMovementDocument } from './schemas/stock-movement.s
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { QueryMovementDto } from './dto/query-movement.dto';
 import { ProductsService } from '../products/products.service';
-import { MovementType } from '../../common/constants';
+import { KardexService } from '../kardex/kardex.service';
+import { MovementType, ProductEntityType } from '../../common/constants';
 
 @Injectable()
 export class StockService {
@@ -17,6 +20,7 @@ export class StockService {
     @InjectModel(StockMovement.name)
     private movementModel: Model<StockMovementDocument>,
     private productsService: ProductsService,
+    @Optional() @Inject(KardexService) private kardexService?: KardexService,
   ) {}
 
   async createMovement(dto: CreateMovementDto, userId: string) {
@@ -59,6 +63,29 @@ export class StockService {
       newStock,
       performedBy: userId,
     });
+
+    // Bridge: also create a Kardex entry if the service is available
+    if (this.kardexService) {
+      try {
+        await this.kardexService.recordEntry(
+          {
+            productId: dto.productId,
+            productType: ProductEntityType.PRODUCT,
+            type: dto.type,
+            quantity: dto.quantity,
+            unitCost: dto.unitCost,
+            documentNumber: dto.documentNumber,
+            supplierId: dto.supplierId,
+            location: dto.location,
+            reason: dto.reason,
+          },
+          userId,
+          true, // skipStockAdjust: StockService already adjusted the stock
+        );
+      } catch {
+        // Kardex entry creation is non-blocking for backward compatibility
+      }
+    }
 
     return {
       movement,

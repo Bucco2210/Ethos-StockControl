@@ -1,4 +1,5 @@
-import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
+import { SUPPLIER_PARSER_KEYS, SupplierParserKey } from './create-supplier.dto';
 
 export class UpdateSupplierDto {
   @IsString()
@@ -32,4 +33,8 @@ export class UpdateSupplierDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsEnum(SUPPLIER_PARSER_KEYS)
+  @IsOptional()
+  parserKey?: SupplierParserKey;
 }

@@ -35,6 +35,10 @@ export enum Permission {
   // Suppliers
   SUPPLIERS_READ = 'suppliers:read',
   SUPPLIERS_MANAGE = 'suppliers:manage',
+
+  // Kardex
+  KARDEX_READ = 'kardex:read',
+  KARDEX_MANAGE = 'kardex:manage',
 }
 
 // ==================== ROLE → PERMISSIONS MAP ====================
@@ -57,6 +61,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.IMPORT_READ,
     Permission.SUPPLIERS_READ,
     Permission.SUPPLIERS_MANAGE,
+    Permission.KARDEX_READ,
+    Permission.KARDEX_MANAGE,
   ],
 
   [Role.MANAGER]: [
@@ -71,6 +77,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.IMPORT_READ,
     Permission.SUPPLIERS_READ,
     Permission.SUPPLIERS_MANAGE,
+    Permission.KARDEX_READ,
+    Permission.KARDEX_MANAGE,
   ],
 
   [Role.USER]: [
@@ -79,6 +87,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.FAMILIES_READ,
     Permission.IMPORT_READ,
     Permission.SUPPLIERS_READ,
+    Permission.KARDEX_READ,
   ],
 };
 
@@ -94,6 +103,12 @@ export enum MovementType {
   IN = 'in',
   OUT = 'out',
   ADJUSTMENT = 'adjustment',
+}
+
+// ==================== PRODUCT ENTITY TYPE ====================
+export enum ProductEntityType {
+  PRODUCT = 'Product',
+  UNIFIED_PRODUCT = 'UnifiedProduct',
 }
 
 // ==================== IMPORT STATUS ====================

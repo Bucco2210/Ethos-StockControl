@@ -118,15 +118,18 @@ export class ImportController {
     FileInterceptor('file', {
       limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
       fileFilter: (_req, file, cb) => {
+        const name = file.originalname.toLowerCase();
         if (
           file.mimetype.includes('spreadsheet') ||
           file.mimetype.includes('excel') ||
-          file.originalname.endsWith('.xlsx') ||
-          file.originalname.endsWith('.xls')
+          file.mimetype === 'application/pdf' ||
+          name.endsWith('.xlsx') ||
+          name.endsWith('.xls') ||
+          name.endsWith('.pdf')
         ) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Solo se permiten archivos Excel (.xlsx)'), false);
+          cb(new BadRequestException('Solo se permiten archivos Excel (.xlsx/.xls) o PDF'), false);
         }
       },
     }),

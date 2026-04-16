@@ -5,6 +5,13 @@ import { ImportService } from './import.service';
 import { SupplierImportService } from './supplier-import.service';
 import { ImportController } from './import.controller';
 import { ExcelParser } from './parsers/excel.parser';
+import { MentrauParser } from './parsers/suppliers/mentrau.parser';
+import { AraParser } from './parsers/suppliers/ara.parser';
+import { ElectroLanusParser } from './parsers/suppliers/electro-lanus.parser';
+import { GrassParser } from './parsers/suppliers/grass.parser';
+import { CandilParser } from './parsers/suppliers/candil.parser';
+import { MaranaParser } from './parsers/suppliers/marana.parser';
+import { SupplierParserRegistry } from './parsers/suppliers/supplier-parser.registry';
 import { RowValidator } from './validators/row.validator';
 import { ProductsModule } from '../products/products.module';
 import { FamiliesModule } from '../families/families.module';
@@ -36,6 +43,18 @@ import {
     MappingSettingsModule,
   ],
   controllers: [ImportController],
-  providers: [ImportService, SupplierImportService, ExcelParser, RowValidator],
+  providers: [
+    ImportService,
+    SupplierImportService,
+    ExcelParser,
+    RowValidator,
+    MentrauParser,
+    AraParser,
+    ElectroLanusParser,
+    GrassParser,
+    CandilParser,
+    MaranaParser,
+    SupplierParserRegistry,
+  ],
 })
 export class ImportModule {}

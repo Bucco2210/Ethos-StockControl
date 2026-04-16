@@ -1,4 +1,15 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export const SUPPLIER_PARSER_KEYS = [
+  'mentrau',
+  'ara',
+  'electro_lanus',
+  'grass',
+  'candil',
+  'marana',
+] as const;
+
+export type SupplierParserKey = (typeof SUPPLIER_PARSER_KEYS)[number];
 
 export class CreateSupplierDto {
   @IsString()
@@ -32,4 +43,8 @@ export class CreateSupplierDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsEnum(SUPPLIER_PARSER_KEYS)
+  @IsOptional()
+  parserKey?: SupplierParserKey;
 }

@@ -14,6 +14,10 @@ export class UpdateSupplierProductDto {
   @IsOptional()
   supplierCategory?: string;
 
+  @IsString()
+  @IsOptional()
+  color?: string;
+
   @IsNumber()
   @Min(0)
   @IsOptional()

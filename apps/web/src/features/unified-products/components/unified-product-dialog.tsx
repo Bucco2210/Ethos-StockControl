@@ -94,9 +94,16 @@ export function UnifiedProductDialog({ open, onOpenChange }: Props) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Descripción</Label>
-            <Input {...register('description')} placeholder="Descripción opcional" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Input {...register('description')} placeholder="Descripción opcional" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <Input {...register('color')} placeholder="Ej: Beige, Negro..." />
+            </div>
           </div>
 
           <div className="space-y-2">

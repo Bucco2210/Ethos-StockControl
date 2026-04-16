@@ -16,15 +16,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useCreateSupplier, useUpdateSupplier } from '../api/use-suppliers';
-import { supplierSchema, type SupplierFormData, type Supplier } from '../schemas/supplier.schema';
+import {
+  supplierSchema,
+  SUPPLIER_PARSER_OPTIONS,
+  type SupplierFormData,
+  type Supplier,
+} from '../schemas/supplier.schema';
 
 interface SupplierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   supplier?: Supplier;
+  onCreated?: (supplier: Supplier) => void;
 }
 
-export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogProps) {
+export function SupplierDialog({ open, onOpenChange, supplier, onCreated }: SupplierDialogProps) {
   const isEditing = !!supplier;
   const createMutation = useCreateSupplier();
   const updateMutation = useUpdateSupplier();
@@ -48,6 +54,7 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
       address: '',
       notes: '',
       isActive: true,
+      parserKey: '',
     },
   });
 
@@ -64,6 +71,7 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
         address: supplier.address ?? '',
         notes: supplier.notes ?? '',
         isActive: supplier.isActive,
+        parserKey: supplier.parserKey ?? '',
       });
     } else {
       reset({
@@ -75,6 +83,7 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
         address: '',
         notes: '',
         isActive: true,
+        parserKey: '',
       });
     }
   }, [supplier, reset]);
@@ -86,6 +95,7 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
     const cleanedData = {
       ...data,
       email: data.email || undefined,
+      parserKey: data.parserKey ? data.parserKey : undefined,
     };
 
     const mutation = isEditing
@@ -93,7 +103,8 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
       : createMutation.mutateAsync(cleanedData);
 
     mutation
-      .then(() => {
+      .then((result) => {
+        if (!isEditing && onCreated && result) onCreated(result);
         reset();
         onOpenChange(false);
       })
@@ -128,7 +139,14 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
             </div>
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>
-              <Input id="code" placeholder="Ej: PROV-001" {...register('code')} />
+              <Input
+                id="code"
+                disabled
+                readOnly
+                className="bg-muted text-muted-foreground cursor-not-allowed"
+                placeholder={isEditing ? '' : 'Se genera automáticamente'}
+                {...register('code')}
+              />
             </div>
           </div>
 
@@ -147,13 +165,41 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
-              <Input id="phone" placeholder="+54 11 1234-5678" {...register('phone')} />
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                placeholder="+54 11 1234-5678"
+                {...register('phone')}
+              />
+              {errors.phone && (
+                <p className="text-sm text-destructive">{errors.phone.message}</p>
+              )}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">Dirección</Label>
             <Input id="address" placeholder="Dirección del proveedor" {...register('address')} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="parserKey">Formato de lista de precios</Label>
+            <select
+              id="parserKey"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              {...register('parserKey')}
+            >
+              <option value="">Genérico (mapeo manual)</option>
+              {SUPPLIER_PARSER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Si el proveedor envía su lista en un formato conocido, elegilo aquí y la importación será automática.
+            </p>
           </div>
 
           <div className="space-y-2">

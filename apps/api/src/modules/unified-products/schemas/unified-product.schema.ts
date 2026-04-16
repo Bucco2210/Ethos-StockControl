@@ -18,6 +18,9 @@ export class UnifiedProduct {
   @Prop({ trim: true })
   description?: string;
 
+  @Prop({ trim: true })
+  color?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Family' })
   familyId?: Types.ObjectId;
 

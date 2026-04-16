@@ -1,4 +1,4 @@
-import { IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CreateSupplierProductDto {
   @IsMongoId()
@@ -21,6 +21,10 @@ export class CreateSupplierProductDto {
   @IsOptional()
   supplierCategory?: string;
 
+  @IsString()
+  @IsOptional()
+  color?: string;
+
   @IsNumber()
   @Min(0)
   basePrice: number;
@@ -30,4 +34,12 @@ export class CreateSupplierProductDto {
   @Max(100)
   @IsOptional()
   discountPercent?: number;
+
+  @IsEnum(['ARS', 'USD'])
+  @IsOptional()
+  currency?: 'ARS' | 'USD';
+
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, string>;
 }

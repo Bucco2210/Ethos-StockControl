@@ -3,6 +3,7 @@ import {
   ProductStatus,
   MovementType,
   ImportStatus,
+  ProductEntityType,
 } from './enums';
 
 // ==================== BASE ====================
@@ -119,6 +120,46 @@ export interface ApiError {
   statusCode: number;
   message: string;
   error?: string;
+}
+
+// ==================== KARDEX ====================
+export interface LotConsumption {
+  lotId: string;
+  quantity: number;
+  unitCost: number;
+}
+
+export interface StockLot extends BaseEntity {
+  productId: string;
+  productType: ProductEntityType;
+  supplierId?: string;
+  documentNumber?: string;
+  unitCost: number;
+  initialQuantity: number;
+  remainingQuantity: number;
+  location?: string;
+}
+
+export interface KardexEntry extends BaseEntity {
+  productId: string;
+  productType: ProductEntityType;
+  type: MovementType;
+  entryQuantity: number;
+  entryUnitCost: number;
+  entryAmount: number;
+  exitQuantity: number;
+  exitUnitCost: number;
+  exitAmount: number;
+  balanceQuantity: number;
+  balanceAmount: number;
+  documentNumber?: string;
+  supplierId?: string;
+  location?: string;
+  reason: string;
+  lotConsumptions: LotConsumption[];
+  previousStock: number;
+  newStock: number;
+  performedBy: string;
 }
 
 // ==================== AUTH ====================

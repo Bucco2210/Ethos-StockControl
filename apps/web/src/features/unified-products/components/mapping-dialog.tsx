@@ -280,6 +280,11 @@ export function MappingDialog({ open, onOpenChange }: Props) {
                       </div>
                       <p className="font-medium truncate">
                         {item.supplierProduct.supplierName}
+                        {item.supplierProduct.color && (
+                          <span className="ml-2 text-xs text-muted-foreground font-normal">
+                            · {item.supplierProduct.color}
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {formatCurrency(item.supplierProduct.netCost)} (neto)

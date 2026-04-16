@@ -29,6 +29,18 @@ export class Supplier {
   @Prop({ default: true })
   isActive: boolean;
 
+  @Prop({
+    type: String,
+    enum: ['mentrau', 'ara', 'electro_lanus', 'grass', 'candil', 'marana'],
+  })
+  parserKey?:
+    | 'mentrau'
+    | 'ara'
+    | 'electro_lanus'
+    | 'grass'
+    | 'candil'
+    | 'marana';
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 }

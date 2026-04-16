@@ -7,6 +7,9 @@ export interface UploadResult {
   autoMapping: Record<string, string>;
   totalRows: number;
   sampleRows: Record<string, unknown>[];
+  autoParsed?: boolean;
+  parserKey?: string;
+  warnings?: Array<{ line?: number; message: string }>;
 }
 
 export interface PreviewRow {

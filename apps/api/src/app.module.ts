@@ -13,9 +13,11 @@ import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { SupplierProductsModule } from './modules/supplier-products/supplier-products.module';
 import { UnifiedProductsModule } from './modules/unified-products/unified-products.module';
 import { MappingSettingsModule } from './modules/mapping-settings/mapping-settings.module';
+import { KardexModule } from './modules/kardex/kardex.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { GlobalExceptionFilter } from './common/filters';
 import { AdminSeeder } from './common/seeders/admin.seeder';
+import { DataSeeder } from './common/seeders/data.seeder';
 
 @Module({
   imports: [
@@ -45,6 +47,7 @@ import { AdminSeeder } from './common/seeders/admin.seeder';
     SupplierProductsModule,
     UnifiedProductsModule,
     MappingSettingsModule,
+    KardexModule,
   ],
   providers: [
     // Global JWT auth guard — all routes require auth unless @Public()
@@ -53,6 +56,8 @@ import { AdminSeeder } from './common/seeders/admin.seeder';
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     // Seed super admin on startup
     AdminSeeder,
+    // Seed example data (families, suppliers, products) if DB is empty
+    DataSeeder,
   ],
 })
 export class AppModule {}

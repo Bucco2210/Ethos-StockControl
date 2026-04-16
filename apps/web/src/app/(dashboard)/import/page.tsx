@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Package, Truck } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Package, Truck, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ import {
   type ConfirmResult,
 } from '@/features/import/api/import.api';
 import { useActiveSuppliers } from '@/features/suppliers/api/use-suppliers';
+import { SupplierDialog } from '@/features/suppliers/components/supplier-dialog';
 
 // Fields available for mapping - standard products
 const MAPPABLE_FIELDS_STANDARD = [
@@ -63,6 +64,7 @@ export default function ImportPage() {
 
   // Supplier import state
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const { data: suppliers, isLoading: loadingSuppliers } = useActiveSuppliers();
 
   // Determine which fields to use based on import type
@@ -90,6 +92,25 @@ export default function ImportPage() {
 
       setUploadResult(result);
       setMapping(result.autoMapping);
+
+      // Parser-based flow: skip column mapping — data is already parsed
+      if (result.autoParsed) {
+        setPreviewResult({
+          jobId: result.jobId,
+          totalRows: result.totalRows,
+          validRows: result.totalRows,
+          errorRows: 0,
+          duplicateRows: 0,
+          preview: result.sampleRows.map((data, i) => ({
+            rowNumber: i + 1,
+            data,
+            status: 'valid' as const,
+          })),
+        });
+        setStep('preview');
+        return;
+      }
+
       setStep('mapping');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al subir archivo');
@@ -262,27 +283,38 @@ export default function ImportPage() {
                     </span>
                   </button>
                   {selectedSupplierId && (
-                    <Select
-                      value={selectedSupplierId === 'pending' ? '' : selectedSupplierId}
-                      onValueChange={setSelectedSupplierId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar proveedor..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {loadingSuppliers ? (
-                          <SelectItem value="_loading" disabled>Cargando...</SelectItem>
-                        ) : suppliers?.length === 0 ? (
-                          <SelectItem value="_empty" disabled>No hay proveedores activos</SelectItem>
-                        ) : (
-                          suppliers?.map((s) => (
-                            <SelectItem key={s._id} value={s._id}>
-                              {s.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={selectedSupplierId === 'pending' ? '' : selectedSupplierId}
+                        onValueChange={setSelectedSupplierId}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Seleccionar proveedor..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {loadingSuppliers ? (
+                            <SelectItem value="_loading" disabled>Cargando...</SelectItem>
+                          ) : suppliers?.length === 0 ? (
+                            <SelectItem value="_empty" disabled>No hay proveedores activos</SelectItem>
+                          ) : (
+                            suppliers?.map((s) => (
+                              <SelectItem key={s._id} value={s._id}>
+                                {s.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setSupplierDialogOpen(true)}
+                        title="Crear nuevo proveedor"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -487,6 +519,16 @@ export default function ImportPage() {
             <CardDescription>Revisá los datos antes de confirmar</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {uploadResult?.autoParsed && (
+              <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+                <strong>Parser automático:</strong> se extrajeron {previewResult.totalRows} productos. Mostrando una muestra de los primeros {previewResult.preview.length}.
+                {uploadResult.warnings && uploadResult.warnings.length > 0 && (
+                  <p className="mt-2 text-xs">
+                    {uploadResult.warnings.length} advertencia(s) durante el parseo.
+                  </p>
+                )}
+              </div>
+            )}
             {/* Stats */}
             <div className="grid grid-cols-4 gap-3">
               <div className="rounded-md border p-3 text-center">
@@ -599,7 +641,9 @@ export default function ImportPage() {
             )}
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep('mapping')}>Volver al mapeo</Button>
+              {!uploadResult?.autoParsed && (
+                <Button variant="outline" onClick={() => setStep('mapping')}>Volver al mapeo</Button>
+              )}
               <Button variant="outline" onClick={reset}>Cancelar</Button>
               <Button
                 onClick={handleConfirm}
@@ -612,6 +656,12 @@ export default function ImportPage() {
           </CardContent>
         </Card>
       )}
+
+      <SupplierDialog
+        open={supplierDialogOpen}
+        onOpenChange={setSupplierDialogOpen}
+        onCreated={(s) => setSelectedSupplierId(s._id)}
+      />
 
       {/* Step 4: Result */}
       {step === 'result' && confirmResult && (

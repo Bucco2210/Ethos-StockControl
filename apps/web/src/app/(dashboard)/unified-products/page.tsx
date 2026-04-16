@@ -182,6 +182,7 @@ export default function UnifiedProductsPage() {
             <tr>
               <th className="px-4 py-3 text-left font-medium">SKU</th>
               <th className="px-4 py-3 text-left font-medium">Nombre</th>
+              <th className="px-4 py-3 text-left font-medium">Color</th>
               <th className="px-4 py-3 text-left font-medium">Familia</th>
               <th className="px-4 py-3 text-right font-medium">Costo</th>
               <th className="px-4 py-3 text-right font-medium">Margen</th>
@@ -196,6 +197,9 @@ export default function UnifiedProductsPage() {
               <tr key={product._id} className="border-t hover:bg-muted/30">
                 <td className="px-4 py-3 font-mono text-xs">{product.sku}</td>
                 <td className="px-4 py-3">{product.name}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {product.color || '-'}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {product.familyId?.name || '-'}
                 </td>
@@ -245,7 +249,7 @@ export default function UnifiedProductsPage() {
             ))}
             {data?.data.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
                   No se encontraron productos unificados
                 </td>
               </tr>

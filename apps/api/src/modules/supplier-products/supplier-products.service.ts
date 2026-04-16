@@ -48,8 +48,11 @@ export class SupplierProductsService {
       existing.supplierName = dto.supplierName;
       existing.supplierDescription = dto.supplierDescription;
       existing.supplierCategory = dto.supplierCategory;
+      if (dto.color !== undefined) existing.color = dto.color;
       existing.basePrice = dto.basePrice;
       existing.discountPercent = dto.discountPercent ?? 0;
+      if (dto.currency) existing.currency = dto.currency;
+      if (dto.metadata) existing.metadata = dto.metadata;
       await existing.save();
       return { product: existing, isNew: false };
     }

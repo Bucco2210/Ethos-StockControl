@@ -20,6 +20,9 @@ export class SupplierProduct {
   @Prop({ trim: true })
   supplierCategory?: string;
 
+  @Prop({ trim: true })
+  color?: string;
+
   @Prop({ required: true, default: 0, min: 0 })
   basePrice: number;
 
@@ -40,6 +43,12 @@ export class SupplierProduct {
 
   @Prop({ type: Date })
   lastPriceUpdate?: Date;
+
+  @Prop({ type: String, enum: ['ARS', 'USD'], default: 'ARS' })
+  currency?: 'ARS' | 'USD';
+
+  @Prop({ type: Object })
+  metadata?: Record<string, string>;
 }
 
 export const SupplierProductSchema = SchemaFactory.createForClass(SupplierProduct);

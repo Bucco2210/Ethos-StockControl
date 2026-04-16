@@ -1,4 +1,4 @@
-# Ethos Stock Control - Guía de Desarrollo
+# B&B Gestion - Guía de Desarrollo
 
 ## Descripción del Sistema
 
@@ -228,3 +228,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 - Ambos sistemas pueden coexistir
 - Los productos importados via el nuevo sistema van a SupplierProduct → UnifiedProduct
 - El mapeo entre productos de diferentes proveedores es manual con sugerencias automáticas
+
+## Formatos de Listas de Proveedores
+
+Ver [`SUPPLIER_FORMATS.md`](./SUPPLIER_FORMATS.md) para la documentación detallada de cada proveedor (MENTRAU, ARA, Electro Lanus, GRASS, Candil, Maraña).

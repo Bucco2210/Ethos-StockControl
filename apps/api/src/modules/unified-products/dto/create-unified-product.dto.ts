@@ -23,6 +23,10 @@ export class CreateUnifiedProductDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  color?: string;
+
   @IsMongoId()
   @IsOptional()
   familyId?: string;

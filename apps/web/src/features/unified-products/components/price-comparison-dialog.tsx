@@ -134,6 +134,7 @@ export function PriceComparisonDialog({ open, onOpenChange, product }: Props) {
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
                             SKU: {sp.supplierSku}
+                            {sp.color && <span className="ml-2">· Color: {sp.color}</span>}
                           </p>
                         </div>
                         <div className="text-right">

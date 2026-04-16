@@ -18,6 +18,10 @@ export class UpdateUnifiedProductDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  color?: string;
+
   @IsMongoId()
   @IsOptional()
   familyId?: string;
