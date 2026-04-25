@@ -12,6 +12,7 @@ import { GrassParser } from './parsers/suppliers/grass.parser';
 import { CandilParser } from './parsers/suppliers/candil.parser';
 import { MaranaParser } from './parsers/suppliers/marana.parser';
 import { SupplierParserRegistry } from './parsers/suppliers/supplier-parser.registry';
+import { AiParserService } from './parsers/ai/ai-parser.service';
 import { RowValidator } from './validators/row.validator';
 import { ProductsModule } from '../products/products.module';
 import { FamiliesModule } from '../families/families.module';
@@ -55,6 +56,7 @@ import {
     CandilParser,
     MaranaParser,
     SupplierParserRegistry,
+    AiParserService,
   ],
 })
 export class ImportModule {}

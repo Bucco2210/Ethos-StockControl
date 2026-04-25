@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ImportJob, ImportJobDocument } from './schemas/import-job.schema';
 import { ExcelParser } from './parsers/excel.parser';
 import { SupplierParserRegistry } from './parsers/suppliers/supplier-parser.registry';
-import { ParsedSupplierRow } from './parsers/suppliers/supplier-parser.interface';
+import { AiParserService } from './parsers/ai/ai-parser.service';
+import { ParsedSupplierRow, ParsedSupplierList } from './parsers/suppliers/supplier-parser.interface';
 import { SupplierProductsService } from '../supplier-products/supplier-products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { MappingSettingsService } from '../mapping-settings/mapping-settings.service';
@@ -21,6 +22,8 @@ export interface SupplierValidatedRow {
 
 @Injectable()
 export class SupplierImportService {
+  private readonly logger = new Logger(SupplierImportService.name);
+
   constructor(
     @InjectModel(ImportJob.name)
     private importJobModel: Model<ImportJobDocument>,
@@ -30,6 +33,7 @@ export class SupplierImportService {
     private supplierProductModel: Model<SupplierProduct>,
     private excelParser: ExcelParser,
     private parserRegistry: SupplierParserRegistry,
+    private aiParser: AiParserService,
     private supplierProductsService: SupplierProductsService,
     private suppliersService: SuppliersService,
     private mappingSettingsService: MappingSettingsService,
@@ -37,8 +41,11 @@ export class SupplierImportService {
 
   /**
    * Step 1: Upload & parse file for supplier products.
-   * If the supplier has a `parserKey`, a specific parser is used and no column
-   * mapping is required — data is parsed directly into the preview.
+   *
+   * Priority:
+   *   1. AI parser (GPT-4o) — universal, works with any supplier/format
+   *   2. Specific parser (parserKey) — fallback if AI fails and supplier has one
+   *   3. Generic Excel flow — manual column mapping as last resort
    */
   async uploadAndParse(
     file: Express.Multer.File,
@@ -47,59 +54,112 @@ export class SupplierImportService {
     sheetName?: string,
   ) {
     const supplier = await this.suppliersService.findById(supplierId);
-    const parser = this.parserRegistry.get(supplier.parserKey);
+    const mimeType = file.mimetype || file.originalname;
 
-    if (parser) {
-      const parsed = await parser.parse(file.buffer, { sheetName });
-      if (parsed.rows.length === 0) {
-        const detail = parsed.warnings?.slice(0, 3).map((w) => w.message).join(' | ');
-        throw new BadRequestException(
-          detail
-            ? `El parser no extrajo productos del archivo. Detalle: ${detail}`
-            : 'El parser no extrajo productos del archivo',
+    // ── 1. Try AI parser first ──
+    if (this.aiParser.isAvailable()) {
+      try {
+        this.logger.log(`Attempting AI parse for supplier "${supplier.name}"`);
+        const aiResult = await this.aiParser.parse(file.buffer, mimeType, supplier.name);
+
+        if (aiResult.rows.length > 0) {
+          return this.buildAutoParsedResponse(file, supplierId, userId, aiResult, 'ai');
+        }
+
+        this.logger.warn(
+          `AI parser returned 0 products for "${supplier.name}", falling back...`,
         );
+      } catch (err: any) {
+        this.logger.warn(`AI parser failed for "${supplier.name}": ${err.message}`);
       }
-
-      const previewData = parsed.rows.map((row, i) => ({
-        rowNumber: i + 1,
-        data: this.rowToData(row) as Record<string, unknown>,
-        status: 'valid' as const,
-      }));
-
-      const job = await this.importJobModel.create({
-        fileName: file.filename || file.originalname,
-        originalName: file.originalname,
-        status: ImportStatus.PREVIEW,
-        importType: 'supplier_products',
-        supplierId: new Types.ObjectId(supplierId),
-        totalRows: parsed.rows.length,
-        validRows: parsed.rows.length,
-        errorRows: 0,
-        duplicateRows: 0,
-        previewData,
-        uploadedBy: userId,
-      });
-
-      return {
-        jobId: job._id,
-        parserKey: supplier.parserKey,
-        autoParsed: true,
-        sheetNames: [] as string[],
-        headers: [] as string[],
-        autoMapping: {} as Record<string, string>,
-        totalRows: parsed.rows.length,
-        sampleRows: previewData.slice(0, 5).map((p) => p.data),
-        warnings: parsed.warnings,
-      };
     }
 
-    // Generic flow (no supplier-specific parser): require column mapping
+    // ── 2. Fallback: specific parser ──
+    const specificParser = this.parserRegistry.get(supplier.parserKey);
+    if (specificParser) {
+      try {
+        const parsed = await specificParser.parse(file.buffer, { sheetName });
+        if (parsed.rows.length > 0) {
+          return this.buildAutoParsedResponse(
+            file, supplierId, userId, parsed, supplier.parserKey!,
+          );
+        }
+      } catch (err: any) {
+        this.logger.warn(`Specific parser "${supplier.parserKey}" failed: ${err.message}`);
+      }
+    }
+
+    // ── 3. Fallback: generic Excel column mapping ──
+    return this.genericExcelFlow(file, supplierId, userId, sheetName);
+  }
+
+  /**
+   * Build the auto-parsed response (used by both AI and specific parsers).
+   */
+  private async buildAutoParsedResponse(
+    file: Express.Multer.File,
+    supplierId: string,
+    userId: string,
+    parsed: ParsedSupplierList,
+    parserKey: string,
+  ) {
+    if (parsed.rows.length === 0) {
+      const detail = parsed.warnings?.slice(0, 3).map((w) => w.message).join(' | ');
+      throw new BadRequestException(
+        detail
+          ? `El parser no extrajo productos del archivo. Detalle: ${detail}`
+          : 'El parser no extrajo productos del archivo',
+      );
+    }
+
+    const previewData = parsed.rows.map((row, i) => ({
+      rowNumber: i + 1,
+      data: this.rowToData(row) as Record<string, unknown>,
+      status: 'valid' as const,
+    }));
+
+    const job = await this.importJobModel.create({
+      fileName: file.filename || file.originalname,
+      originalName: file.originalname,
+      status: ImportStatus.PREVIEW,
+      importType: 'supplier_products',
+      supplierId: new Types.ObjectId(supplierId),
+      totalRows: parsed.rows.length,
+      validRows: parsed.rows.length,
+      errorRows: 0,
+      duplicateRows: 0,
+      previewData,
+      uploadedBy: userId,
+    });
+
+    return {
+      jobId: job._id,
+      parserKey,
+      autoParsed: true,
+      sheetNames: [] as string[],
+      headers: [] as string[],
+      autoMapping: {} as Record<string, string>,
+      totalRows: parsed.rows.length,
+      sampleRows: previewData.slice(0, 5).map((p) => p.data),
+      warnings: parsed.warnings,
+    };
+  }
+
+  /**
+   * Generic Excel flow: require manual column mapping.
+   */
+  private async genericExcelFlow(
+    file: Express.Multer.File,
+    supplierId: string,
+    userId: string,
+    sheetName?: string,
+  ) {
     const sheetNames = await this.excelParser.getSheetNames(file.buffer);
     const parsed = await this.excelParser.parse(file.buffer, sheetName);
     if (parsed.totalRows === 0) {
       throw new BadRequestException(
-        'El archivo no contiene datos con formato tabular estándar. ' +
-        'Si el proveedor usa un formato especial, asignale un "Formato de lista de precios" desde la pantalla de Proveedores.',
+        'No se pudieron extraer productos del archivo. ' +
+        'Verificá que el archivo contenga datos tabulares válidos.',
       );
     }
 

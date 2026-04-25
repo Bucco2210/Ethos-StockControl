@@ -12,6 +12,7 @@ import {
 import { SupplierProductsService } from './supplier-products.service';
 import { CreateSupplierProductDto } from './dto/create-supplier-product.dto';
 import { UpdateSupplierProductDto } from './dto/update-supplier-product.dto';
+import { QuerySupplierProductDto } from './dto/query-supplier-product.dto';
 import { RequirePermissions } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
 import { Permission } from '../../common/constants';
@@ -23,23 +24,23 @@ export class SupplierProductsController {
 
   @Get()
   @RequirePermissions(Permission.SUPPLIERS_READ)
-  findAll(@Query('supplierId') supplierId?: string) {
-    if (supplierId) {
-      return this.supplierProductsService.findBySupplier(supplierId);
-    }
-    return this.supplierProductsService.findAll();
+  findAll(@Query() query: QuerySupplierProductDto) {
+    return this.supplierProductsService.findAll(query);
   }
 
   @Get('unmapped')
   @RequirePermissions(Permission.SUPPLIERS_READ)
-  findUnmapped() {
-    return this.supplierProductsService.findUnmapped();
+  findUnmapped(@Query() query: QuerySupplierProductDto) {
+    return this.supplierProductsService.findUnmapped(query);
   }
 
   @Get('by-supplier/:supplierId')
   @RequirePermissions(Permission.SUPPLIERS_READ)
-  findBySupplier(@Param('supplierId') supplierId: string) {
-    return this.supplierProductsService.findBySupplier(supplierId);
+  findBySupplier(
+    @Param('supplierId') supplierId: string,
+    @Query() query: QuerySupplierProductDto,
+  ) {
+    return this.supplierProductsService.findBySupplier(supplierId, query);
   }
 
   @Get('by-unified/:unifiedProductId')

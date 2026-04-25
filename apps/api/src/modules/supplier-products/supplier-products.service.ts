@@ -4,10 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import { SupplierProduct, SupplierProductDocument } from './schemas/supplier-product.schema';
 import { CreateSupplierProductDto } from './dto/create-supplier-product.dto';
 import { UpdateSupplierProductDto } from './dto/update-supplier-product.dto';
+import { QuerySupplierProductDto } from './dto/query-supplier-product.dto';
 
 @Injectable()
 export class SupplierProductsService {
@@ -64,24 +65,55 @@ export class SupplierProductsService {
     return { product, isNew: true };
   }
 
-  async findAll(): Promise<SupplierProductDocument[]> {
-    return this.supplierProductModel
-      .find()
-      .populate('supplierId', 'name code')
-      .sort({ supplierName: 1 });
+  async findAll(query: QuerySupplierProductDto = {}) {
+    const { page = 1, limit = 20, search, supplierId, unmapped } = query;
+    const filter: FilterQuery<SupplierProduct> = {};
+
+    if (search) {
+      filter.$or = [
+        { supplierName: { $regex: search, $options: 'i' } },
+        { supplierSku: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (supplierId) {
+      filter.supplierId = new Types.ObjectId(supplierId);
+    }
+    if (unmapped === 'true') {
+      filter.$and = [
+        ...(filter.$and || []),
+        { $or: [{ unifiedProductId: null }, { unifiedProductId: { $exists: false } }] },
+      ];
+    } else if (unmapped === 'false') {
+      filter.unifiedProductId = { $ne: null };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.supplierProductModel
+        .find(filter)
+        .populate('supplierId', 'name code')
+        .sort({ supplierName: 1 })
+        .skip(skip)
+        .limit(limit),
+      this.supplierProductModel.countDocuments(filter),
+    ]);
+
+    return {
+      data,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findBySupplier(supplierId: string): Promise<SupplierProductDocument[]> {
-    return this.supplierProductModel
-      .find({ supplierId: new Types.ObjectId(supplierId) })
-      .sort({ supplierName: 1 });
+  async findBySupplier(supplierId: string, query: QuerySupplierProductDto = {}) {
+    return this.findAll({ ...query, supplierId });
   }
 
-  async findUnmapped(): Promise<SupplierProductDocument[]> {
-    return this.supplierProductModel
-      .find({ unifiedProductId: { $exists: false } })
-      .populate('supplierId', 'name code')
-      .sort({ supplierName: 1 });
+  async findUnmapped(query: QuerySupplierProductDto = {}) {
+    return this.findAll({ ...query, unmapped: 'true' });
   }
 
   async findById(id: string): Promise<SupplierProductDocument> {
