@@ -314,9 +314,9 @@ export class SupplierImportService {
         autoMapped = autoMapResult.mapped;
         autoCreated = autoMapResult.created;
       }
-    } catch (err) {
+    } catch (err: any) {
       // Auto-map errors shouldn't fail the import
-      console.error('Auto-map error:', err);
+      this.logger.error(`Auto-map error: ${err?.message ?? err}`, err?.stack);
     }
 
     job.status = ImportStatus.COMPLETED;

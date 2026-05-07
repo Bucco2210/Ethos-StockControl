@@ -14,6 +14,9 @@ interface JwtPayload {
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, JWT_REFRESH_STRATEGY) {
   constructor(configService: ConfigService) {
+    const secret =
+      configService.get<string>('JWT_REFRESH_SECRET') || process.env.JWT_REFRESH_SECRET;
+    if (!secret) throw new Error('JWT_REFRESH_SECRET is not configured');
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         // Extract from httpOnly cookie
@@ -22,7 +25,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, JWT_REFRESH_S
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_REFRESH_SECRET') || process.env.JWT_REFRESH_SECRET,
+      secretOrKey: secret,
       passReqToCallback: true,
     });
   }

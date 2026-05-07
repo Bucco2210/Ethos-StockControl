@@ -34,7 +34,7 @@ export class AraParser implements SupplierParser {
   ]);
 
   private readonly PRICE_RE = /\$\s*([\d.]+,\d{2})\s*$/;
-  private readonly CODE_RE = /\b([A-Z]{2,}[-.][A-Z0-9\-.]{1,}|[A-Z]+\d+[A-Z0-9\-]*)\b/;
+  private readonly CODE_RE = /\b([A-Z]{2,}[-.][A-Z0-9.-]{1,}|[A-Z]+\d+[A-Z0-9-]*)\b/;
 
   async parse(buffer: Buffer): Promise<ParsedSupplierList> {
     const data = await pdfParse(buffer);

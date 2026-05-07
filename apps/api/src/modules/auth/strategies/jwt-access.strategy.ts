@@ -13,10 +13,13 @@ interface JwtPayload {
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy, JWT_ACCESS_STRATEGY) {
   constructor(configService: ConfigService) {
+    const secret =
+      configService.get<string>('JWT_ACCESS_SECRET') || process.env.JWT_ACCESS_SECRET;
+    if (!secret) throw new Error('JWT_ACCESS_SECRET is not configured');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET') || process.env.JWT_ACCESS_SECRET,
+      secretOrKey: secret,
     });
   }
 

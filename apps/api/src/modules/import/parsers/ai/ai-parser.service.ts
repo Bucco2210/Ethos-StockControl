@@ -165,7 +165,7 @@ export class AiParserService {
     const lines: string[] = [];
     const colCount = bestSheet.columnCount;
 
-    bestSheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    bestSheet.eachRow({ includeEmpty: false }, (row) => {
       if (lines.length >= 200) return; // Limit to avoid token overflow
       const cells: string[] = [];
       for (let c = 1; c <= colCount; c++) {
