@@ -56,6 +56,7 @@ export default function ImportPage() {
   const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   // Sheet selection state
@@ -78,10 +79,11 @@ export default function ImportPage() {
     setFile(selectedFile);
     setLoading(true);
     setError('');
+    setUploadProgress(0);
     try {
       const result = selectedSupplierId
-        ? await importApi.uploadSupplier(selectedFile, selectedSupplierId, sheetName)
-        : await importApi.upload(selectedFile, sheetName);
+        ? await importApi.uploadSupplier(selectedFile, selectedSupplierId, sheetName, setUploadProgress)
+        : await importApi.upload(selectedFile, sheetName, setUploadProgress);
 
       // If multiple sheets and no sheet selected yet, show sheet selector
       if (!sheetName && result.sheetNames && result.sheetNames.length > 1) {
@@ -116,6 +118,7 @@ export default function ImportPage() {
       setError(err.response?.data?.message || 'Error al subir archivo');
     } finally {
       setLoading(false);
+      setUploadProgress(null);
     }
   }, [selectedSupplierId]);
 
@@ -173,6 +176,7 @@ export default function ImportPage() {
     setSelectedSupplierId('');
     setSheetNames([]);
     setSelectedSheet('');
+    setUploadProgress(null);
   };
 
   // Update mapping for a field
@@ -340,7 +344,29 @@ export default function ImportPage() {
                 }`}
               >
                 {loading ? (
-                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                  <div className="w-full max-w-md flex flex-col items-center gap-3">
+                    <FileSpreadsheet className="h-8 w-8 text-primary" />
+                    <p className="text-sm font-medium">
+                      {uploadProgress !== null && uploadProgress < 100
+                        ? `Subiendo archivo... ${uploadProgress}%`
+                        : 'Procesando archivo...'}
+                    </p>
+                    <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                      {uploadProgress !== null && uploadProgress < 100 ? (
+                        <div
+                          className="h-full bg-primary transition-all duration-150"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      ) : (
+                        <div className="h-full bg-primary/70 animate-pulse w-full" />
+                      )}
+                    </div>
+                    {file && (
+                      <p className="text-xs text-muted-foreground truncate max-w-full">
+                        {file.name}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <FileSpreadsheet className="h-10 w-10 text-muted-foreground mb-3" />
@@ -469,7 +495,9 @@ export default function ImportPage() {
             {/* Sample data */}
             {uploadResult.sampleRows.length > 0 && (
               <div>
-                <p className="text-sm font-medium mb-2">Muestra de datos (primeras 5 filas):</p>
+                <p className="text-sm font-medium mb-2">
+                  Muestra de datos (primeras {uploadResult.sampleRows.length} filas):
+                </p>
                 <div className="overflow-x-auto rounded-md border">
                   <table className="text-xs w-full">
                     <thead>

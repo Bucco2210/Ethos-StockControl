@@ -12,7 +12,7 @@
   "dependencies": {
     "@ethos/shared": "*",
     "@nestjs/common": "^11.1.17",
-    "@nestjs/config": "^4.0.3",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.17",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/mongoose": "^11.0.4",

@@ -32,7 +32,7 @@ export class MentrauParser implements SupplierParser {
   async parse(buffer: Buffer, options?: SupplierParserOptions): Promise<ParsedSupplierList> {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer as any);
-    const sheetName = options?.sheetName ?? 'RETAIL';
+    const sheetName = options?.sheetName ?? 'GENERAL';
     const ws = wb.getWorksheet(sheetName) ?? wb.worksheets[0];
     if (!ws) {
       return { rows: [], warnings: [{ message: `Hoja no encontrada: ${sheetName}` }] };

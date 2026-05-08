@@ -43,8 +43,8 @@ export class SupplierImportService {
    * Step 1: Upload & parse file for supplier products.
    *
    * Priority:
-   *   1. AI parser (GPT-4o) — universal, works with any supplier/format
-   *   2. Specific parser (parserKey) — fallback if AI fails and supplier has one
+   *   1. Specific parser (parserKey) — exact, deterministic, no row limit
+   *   2. AI parser (GPT-4o) — universal fallback, works with any format
    *   3. Generic Excel flow — manual column mapping as last resort
    */
   async uploadAndParse(
@@ -56,7 +56,26 @@ export class SupplierImportService {
     const supplier = await this.suppliersService.findById(supplierId);
     const mimeType = file.mimetype || file.originalname;
 
-    // ── 1. Try AI parser first ──
+    // ── 1. Try specific parser first (deterministic, no row limit) ──
+    const specificParser = this.parserRegistry.get(supplier.parserKey);
+    if (specificParser) {
+      try {
+        this.logger.log(`Attempting specific parser "${supplier.parserKey}" for "${supplier.name}"`);
+        const parsed = await specificParser.parse(file.buffer, { sheetName });
+        if (parsed.rows.length > 0) {
+          return this.buildAutoParsedResponse(
+            file, supplierId, userId, parsed, supplier.parserKey!,
+          );
+        }
+        this.logger.warn(
+          `Specific parser "${supplier.parserKey}" returned 0 products, falling back to AI...`,
+        );
+      } catch (err: any) {
+        this.logger.warn(`Specific parser "${supplier.parserKey}" failed: ${err.message}`);
+      }
+    }
+
+    // ── 2. Fallback: AI parser ──
     if (this.aiParser.isAvailable()) {
       try {
         this.logger.log(`Attempting AI parse for supplier "${supplier.name}"`);
@@ -71,21 +90,6 @@ export class SupplierImportService {
         );
       } catch (err: any) {
         this.logger.warn(`AI parser failed for "${supplier.name}": ${err.message}`);
-      }
-    }
-
-    // ── 2. Fallback: specific parser ──
-    const specificParser = this.parserRegistry.get(supplier.parserKey);
-    if (specificParser) {
-      try {
-        const parsed = await specificParser.parse(file.buffer, { sheetName });
-        if (parsed.rows.length > 0) {
-          return this.buildAutoParsedResponse(
-            file, supplierId, userId, parsed, supplier.parserKey!,
-          );
-        }
-      } catch (err: any) {
-        this.logger.warn(`Specific parser "${supplier.parserKey}" failed: ${err.message}`);
       }
     }
 
@@ -140,7 +144,7 @@ export class SupplierImportService {
       headers: [] as string[],
       autoMapping: {} as Record<string, string>,
       totalRows: parsed.rows.length,
-      sampleRows: previewData.slice(0, 5).map((p) => p.data),
+      sampleRows: previewData.slice(0, 20).map((p) => p.data),
       warnings: parsed.warnings,
     };
   }
@@ -183,7 +187,7 @@ export class SupplierImportService {
       headers: parsed.headers,
       autoMapping,
       totalRows: parsed.totalRows,
-      sampleRows: parsed.rows.slice(0, 5),
+      sampleRows: parsed.rows.slice(0, 20),
     };
   }
 

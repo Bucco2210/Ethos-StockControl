@@ -52,7 +52,7 @@ export class ImportService {
       headers: parsed.headers,
       autoMapping,
       totalRows: parsed.totalRows,
-      sampleRows: parsed.rows.slice(0, 5),
+      sampleRows: parsed.rows.slice(0, 20),
     };
   }
 

@@ -39,12 +39,19 @@ export interface ConfirmResult {
 
 export const importApi = {
   // ─── Standard Product Import ───
-  upload: async (file: File, sheetName?: string): Promise<UploadResult> => {
+  upload: async (
+    file: File,
+    sheetName?: string,
+    onProgress?: (pct: number) => void,
+  ): Promise<UploadResult> => {
     const formData = new FormData();
     formData.append('file', file);
     if (sheetName) formData.append('sheetName', sheetName);
     const res = await apiClient.post('/import/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+      },
     });
     return res.data;
   },
@@ -71,13 +78,21 @@ export const importApi = {
   },
 
   // ─── Supplier Product Import ───
-  uploadSupplier: async (file: File, supplierId: string, sheetName?: string): Promise<UploadResult> => {
+  uploadSupplier: async (
+    file: File,
+    supplierId: string,
+    sheetName?: string,
+    onProgress?: (pct: number) => void,
+  ): Promise<UploadResult> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('supplierId', supplierId);
     if (sheetName) formData.append('sheetName', sheetName);
     const res = await apiClient.post('/import/supplier/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+      },
     });
     return res.data;
   },

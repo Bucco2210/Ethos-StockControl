@@ -21,6 +21,7 @@ import {
   Building2,
   Layers,
   Settings2,
+  Truck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -39,6 +40,7 @@ const navigation: NavItem[] = [
   { name: 'Unificados', href: '/unified-products', icon: Layers, permission: Permission.PRODUCTS_READ },
   { name: 'Familias', href: '/families', icon: FolderTree, permission: Permission.FAMILIES_READ },
   { name: 'Proveedores', href: '/suppliers', icon: Building2, permission: Permission.PRODUCTS_READ },
+  { name: 'Lista por Proveedor', href: '/supplier-products', icon: Truck, permission: Permission.PRODUCTS_READ },
   { name: 'Importar', href: '/import', icon: Upload, permission: Permission.IMPORT_EXECUTE },
   { name: 'Auto-mapeo', href: '/mapping-settings', icon: Settings2, permission: Permission.SUPPLIERS_MANAGE },
   { name: 'Usuarios', href: '/users', icon: Users, permission: Permission.USERS_READ },
