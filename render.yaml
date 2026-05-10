@@ -22,3 +22,5 @@ services:
         generateValue: true
       - key: JWT_REFRESH_EXPIRATION
         value: "7d"
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render dashboard — habilita el AI parser

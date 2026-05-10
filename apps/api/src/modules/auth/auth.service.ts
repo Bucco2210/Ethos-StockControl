@@ -128,7 +128,7 @@ export class AuthService {
   }): string {
     return this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRATION', '15m'),
+      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRATION', '15m') as any,
     });
   }
 
@@ -139,7 +139,7 @@ export class AuthService {
     const payload = { sub: userId, type: 'refresh' };
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d') as any,
     });
 
     // Hash and store the refresh token

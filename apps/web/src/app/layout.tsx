@@ -6,7 +6,7 @@ import { Providers } from '@/providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Ethos Stock',
+  title: 'B&B Gestion',
   description: 'Sistema de gestión de stock profesional',
 };
 

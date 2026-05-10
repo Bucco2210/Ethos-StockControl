@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
@@ -33,6 +33,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || process.env.API_PORT || 3001;
   await app.listen(port, '0.0.0.0');
-  console.log(`API running on port ${port}`);
+  Logger.log(`API running on port ${port}`, 'Bootstrap');
 }
 bootstrap();

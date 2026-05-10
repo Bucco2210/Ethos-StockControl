@@ -1,5 +1,5 @@
 // Re-export shared enums for convenience within the API
-export { Role, Permission, ROLE_PERMISSIONS, ProductStatus, MovementType, ImportStatus } from '@ethos/shared';
+export { Role, Permission, ROLE_PERMISSIONS, ProductStatus, MovementType, ImportStatus, ProductEntityType } from '@ethos/shared';
 
 // Auth constants
 export const JWT_ACCESS_STRATEGY = 'jwt-access';

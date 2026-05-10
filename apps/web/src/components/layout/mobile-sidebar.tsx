@@ -17,6 +17,11 @@ import {
   FolderTree,
   Upload,
   LayoutDashboard,
+  ClipboardList,
+  Building2,
+  Layers,
+  Settings2,
+  Truck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -30,9 +35,14 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: Permission.PRODUCTS_READ },
   { name: 'Stock', href: '/stock', icon: BarChart3, permission: Permission.STOCK_READ },
+  { name: 'Kardex', href: '/kardex', icon: ClipboardList, permission: Permission.KARDEX_READ },
   { name: 'Productos', href: '/products', icon: Package, permission: Permission.PRODUCTS_READ },
+  { name: 'Unificados', href: '/unified-products', icon: Layers, permission: Permission.PRODUCTS_READ },
   { name: 'Familias', href: '/families', icon: FolderTree, permission: Permission.FAMILIES_READ },
+  { name: 'Proveedores', href: '/suppliers', icon: Building2, permission: Permission.PRODUCTS_READ },
+  { name: 'Lista por Proveedor', href: '/supplier-products', icon: Truck, permission: Permission.PRODUCTS_READ },
   { name: 'Importar', href: '/import', icon: Upload, permission: Permission.IMPORT_EXECUTE },
+  { name: 'Auto-mapeo', href: '/mapping-settings', icon: Settings2, permission: Permission.SUPPLIERS_MANAGE },
   { name: 'Usuarios', href: '/users', icon: Users, permission: Permission.USERS_READ },
 ];
 
@@ -75,7 +85,7 @@ export function MobileSidebar() {
           <div className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r shadow-lg md:hidden flex flex-col animate-in slide-in-from-left duration-200">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-bold">Ethos Stock</h2>
+              <h2 className="text-lg font-bold">B&amp;B Gestion</h2>
               <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
