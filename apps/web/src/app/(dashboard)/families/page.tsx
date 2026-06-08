@@ -61,7 +61,7 @@ export default function FamiliesPage() {
         <div>
           <h1 className="text-2xl font-bold">Familias</h1>
           <p className="text-muted-foreground">
-            Organiza tus productos en familias y subfamilias
+            Categorías y subcategorías para clasificar el catálogo. Cada producto pertenece a una familia y, opcionalmente, a una subfamilia.
           </p>
         </div>
       </div>

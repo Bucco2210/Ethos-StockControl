@@ -24,6 +24,12 @@ export class StockMovement {
   @Prop({ required: true })
   newStock: number;
 
+  @Prop({ type: Types.ObjectId, ref: 'Supplier' })
+  supplierId?: Types.ObjectId;
+
+  @Prop({ trim: true })
+  documentNumber?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   performedBy: Types.ObjectId;
 }

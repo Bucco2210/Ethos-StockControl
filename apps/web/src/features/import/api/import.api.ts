@@ -117,4 +117,53 @@ export const importApi = {
     const res = await apiClient.post(`/import/supplier/${jobId}/confirm`);
     return res.data;
   },
+
+  impactStockSupplier: async (
+    jobId: string,
+  ): Promise<{
+    jobId: string;
+    productsCreated: number;
+    productsUpdated: number;
+    errors: Array<{ row: number; message: string }>;
+  }> => {
+    const res = await apiClient.post(`/import/supplier/${jobId}/impact-stock`);
+    return res.data;
+  },
+
+  getSupplierHistory: async (): Promise<SupplierImportJob[]> => {
+    const res = await apiClient.get('/import/supplier/history');
+    return res.data;
+  },
+
+  revertSupplier: async (
+    jobId: string,
+  ): Promise<{
+    jobId: string;
+    restored: number;
+    deleted: number;
+    errors: Array<{ message: string }>;
+  }> => {
+    const res = await apiClient.post(`/import/supplier/${jobId}/revert`);
+    return res.data;
+  },
 };
+
+export interface SupplierImportJob {
+  _id: string;
+  fileName: string;
+  originalName: string;
+  status: 'pending' | 'processing' | 'preview' | 'completed' | 'failed' | 'reverted';
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  supplierId?: { _id: string; name: string; code?: string } | string;
+  uploadedBy?: { _id: string; firstName: string; lastName: string } | string;
+  revertedBy?: { _id: string; firstName: string; lastName: string } | string;
+  completedAt?: string;
+  revertedAt?: string;
+  createdAt: string;
+  result?: {
+    supplierProductsCreated?: number;
+    supplierProductsUpdated?: number;
+  };
+}

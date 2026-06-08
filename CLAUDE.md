@@ -63,6 +63,26 @@ SupplierProduct (Producto del Proveedor)
 ├── unifiedProductId → UnifiedProduct (opcional)
 └── importJobId → ImportJob
 
+StockMovement (Movimiento de inventario)
+├── productId → Product
+├── type: IN | OUT | ADJUSTMENT
+├── quantity, reason
+├── previousStock, newStock
+├── supplierId → Supplier (obligatorio en IN)
+├── documentNumber (número de remito, obligatorio en IN)
+└── performedBy → User
+
+ImportJob (Trabajo de importación)
+├── fileName, originalName, importType
+├── status: pending|preview|completed|failed|reverted
+├── supplierId → Supplier (en supplier_products)
+├── previewData[] (filas validadas)
+├── result (counters de creados/actualizados)
+├── previousValues[] (snapshot para revert: por cada SupplierProduct
+│                    tocado, su basePrice/discount previos o wasCreated=true)
+├── revertedAt, revertedBy (audit)
+└── uploadedBy → User
+
 UnifiedProduct (Producto Unificado)
 ├── sku (interno, único)
 ├── name, description
@@ -120,6 +140,35 @@ Precio Venta = Costo Seleccionado × (1 + Margen% / 100)
 - [x] Estrategias: exact_sku, similar_name, disabled
 - [x] Auto-mapeo integrado en flujo de importación
 
+### Fase 5: Impactar lista en Productos + Stock
+- [x] Endpoint `POST /import/supplier/:jobId/impact-stock`
+- [x] Upsert por SKU del proveedor: existentes update precio/dto, nuevos se crean
+- [x] Nuevos productos van bajo familia "Sin clasificar" con stock 0
+- [x] Botón en frontend (step 'result' del import de proveedor) con diálogo de confirmación
+
+### Fase 6: Historial de listas + regresión
+- [x] Snapshot inline en ImportJob (`previousValues[]`) capturado en `confirm()`
+- [x] Estado `ImportStatus.REVERTED` + campos `revertedAt`, `revertedBy`
+- [x] Endpoint `POST /import/supplier/:jobId/revert` restaura precios y borra los
+      SupplierProducts creados por ese job (desvincula UnifiedProducts huérfanos)
+- [x] Endpoint `GET /import/supplier/history` (team-wide, sin `previewData` ni `previousValues`)
+- [x] Página `/import-history` con botón "Revertir"
+- [x] La regresión NO deshace el impacto en Productos+Stock (se aclara en el diálogo)
+
+### Fase 7: Remito + proveedor en movimientos de stock
+- [x] Schema `StockMovement` con `supplierId` y `documentNumber`
+- [x] Validación: ambos obligatorios para `IN`, opcionales para `OUT`/`ADJUSTMENT`
+- [x] Dialog frontend con render condicional + zod superRefine
+- [x] Historial muestra "Prov: X · Remito: Y"
+
+### Fase 8: QR por producto + scanner mobile
+- [x] Endpoint `GET /products/by-sku/:sku`
+- [x] Componente `ProductQrDialog` (qrcode.react) con imprimir + descargar PNG
+- [x] Acción "Ver QR" en dropdown de la tabla de productos
+- [x] Página `/scan` (mobile-only, fallback en desktop) con `@yudiel/react-qr-scanner`
+- [x] Flujo: scan → buscar por SKU → mostrar stock → cantidad → POST movement OUT
+- [x] Permiso del enlace lateral: `STOCK_ADJUST`
+
 ---
 
 ## Módulos Implementados
@@ -132,6 +181,9 @@ Precio Venta = Costo Seleccionado × (1 + Margen% / 100)
 | `unified-products` | Productos unificados + mapeo | CRUD + `/suggestions`, `/auto-map`, `/create-from-unmapped`, `/link` |
 | `supplier-products` | Productos de proveedores | CRUD + `createOrUpdate` |
 | `suppliers` | Gestión de proveedores | CRUD completo |
+| `products` | Catálogo maestro | CRUD + `/by-sku/:sku` (lookup para scanner) |
+| `stock` | Movimientos de inventario | POST `/stock/movement` (acepta `supplierId` + `documentNumber`, obligatorios en IN) |
+| `import` (supplier) | Importación de lista de proveedor | upload/preview/confirm + `impact-stock`, `revert`, `history` |
 
 ### Frontend (apps/web/src/features/)
 
@@ -139,7 +191,23 @@ Precio Venta = Costo Seleccionado × (1 + Margen% / 100)
 |---------|-------------|
 | `unified-products` | `mapping-dialog`, `price-comparison-dialog`, `unified-product-dialog` |
 | `mapping-settings` | API hooks para configuración |
-| `import` | Selector de tipo (standard/supplier) + selector de proveedor |
+| `import` | Selector de tipo (standard/supplier) + selector de proveedor + export Excel (`lib/export-to-excel.ts`) |
+| `products` | `product-qr-dialog` (QR con SKU, imprimir, descargar PNG) |
+| `stock` | `stock-movement-dialog` (campos remito + proveedor condicionales), `movement-history` |
+
+### Páginas del dashboard (apps/web/src/app/(dashboard)/)
+
+| Ruta | Descripción |
+|------|-------------|
+| `/dashboard` | Resumen del inventario |
+| `/stock` | Stock actual + entradas/salidas + historial por producto |
+| `/scan` | Scanner QR (solo mobile — detecta UA + viewport ≤820px) |
+| `/products` | Catálogo maestro + acción "Ver QR" |
+| `/unified-products` | Productos unificados + comparativa |
+| `/families` · `/suppliers` · `/supplier-products` | CRUDs / listados |
+| `/import` | Wizard: upload → mapping → preview → confirmar → (opcional) impactar en stock |
+| `/import-history` | Listado de importaciones de proveedor + botón Revertir |
+| `/mapping-settings` · `/kardex` · `/users` | Configuración y gestión |
 
 ---
 
@@ -171,6 +239,34 @@ Precio Venta = Costo Seleccionado × (1 + Margen% / 100)
    → Usuario importa
    → Sistema actualiza SupplierProducts existentes
    → Costos en UnifiedProducts se actualizan automáticamente
+   → Antes del update, el job guarda `previousValues[]` para permitir revert
+
+7. (Opcional) Impactar la lista en el catálogo general
+   → Tras confirmar la importación, botón "Impactar en Stock"
+   → Por cada SupplierProduct válido, upsert en Product usando el mismo SKU:
+     · Existe → actualiza basePrice / discountPercent (stock intacto)
+     · No existe → crea Product en familia "Sin clasificar" con stock 0
+   → No afecta a la lista del proveedor, solo al catálogo
+
+8. (Opcional) Revertir una importación desde `/import-history`
+   → Restaura los precios previos de los SupplierProducts modificados
+   → Borra los SupplierProducts que ese job hubiera creado
+   → No revierte el impacto en Products+Stock (si se ejecutó, queda como está)
+   → Marca el job como REVERTED con `revertedAt` y `revertedBy`
+```
+
+## Flujo de Stock + QR
+
+```
+Entradas (mostrador):
+  Stock → Entrada (dialog) → completar proveedor + número de remito
+  → POST /stock/movement (type=IN, supplierId + documentNumber requeridos)
+
+Salidas rápidas desde celular:
+  Imprimir QR de cada producto (Productos → Ver QR → PNG/imprimir; QR codifica el SKU)
+  Pegar QR en el estante / producto
+  En el celular: /scan → cámara enfoca QR → SKU resuelto → cantidad → Descontar
+  → POST /stock/movement (type=OUT)
 ```
 
 ---
@@ -179,7 +275,8 @@ Precio Venta = Costo Seleccionado × (1 + Margen% / 100)
 
 ```bash
 # Desarrollo
-npm run dev              # Inicia API y Web en paralelo
+npm run dev              # Inicia API y Web en paralelo vía concurrently
+                         # (kill:3001 + build:shared + api + web con prefijos)
 
 # Solo API
 cd apps/api && npm run dev
@@ -188,9 +285,15 @@ cd apps/api && npm run dev
 cd apps/web && npm run dev
 
 # Build
-npm run build:shared     # Compilar tipos compartidos
+npm run build:shared     # Compilar tipos compartidos (necesario tras tocar packages/shared)
 npm run build            # Build completo
 ```
+
+**Nota:** `npm run dev` en la raíz usa `concurrently` (devDependency) porque
+`npm run --workspaces` corre secuencial y bloquea en el primer workspace con
+proceso watch. Si tocás `packages/shared`, hace falta rebuildearlo aparte
+(`npm run build:shared`) o reiniciar `npm run dev` — no está en watch concurrente
+por elección, para no recompilar todo el rato.
 
 ---
 
@@ -228,6 +331,16 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 - Ambos sistemas pueden coexistir
 - Los productos importados via el nuevo sistema van a SupplierProduct → UnifiedProduct
 - El mapeo entre productos de diferentes proveedores es manual con sugerencias automáticas
+- **Impactar en Stock** es el puente entre el sistema de proveedores y Product/Stock:
+  toma SupplierProducts y los lleva al catálogo maestro usando el SKU del proveedor.
+- **Revert** solo afecta la capa de SupplierProducts. Si ya impactaste a Products+Stock,
+  esa parte queda como está — por diseño, para no perder stock real.
+- Las importaciones hechas antes de la Fase 6 no tienen `previousValues` y no se pueden
+  revertir (el endpoint devuelve 400 con mensaje explicativo).
+- El scanner QR necesita HTTPS para acceder a la cámara desde dispositivos remotos.
+  Para probar desde el celular en red local conviene usar ngrok/Cloudflare Tunnel.
+- Los QR codifican únicamente el SKU del producto, no su `_id`. Son regenerables y
+  funcionan aunque cambie el ObjectId.
 
 ## Formatos de Listas de Proveedores
 

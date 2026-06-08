@@ -59,7 +59,7 @@ export default function DashboardPage() {
           {greeting}, {user?.firstName}
         </h1>
         <p className="text-muted-foreground">
-          Resumen general de tu inventario
+          Vista general del inventario: stock actual, alertas de stock bajo y actividad reciente de cargas y movimientos.
         </p>
       </div>
 

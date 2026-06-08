@@ -1,10 +1,18 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Package, Truck, Plus } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Package, Truck, Plus, Download, PackageCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -21,6 +29,7 @@ import {
 } from '@/features/import/api/import.api';
 import { useActiveSuppliers } from '@/features/suppliers/api/use-suppliers';
 import { SupplierDialog } from '@/features/suppliers/components/supplier-dialog';
+import { exportPreviewToExcel } from '@/features/import/lib/export-to-excel';
 
 // Fields available for mapping - standard products
 const MAPPABLE_FIELDS_STANDARD = [
@@ -67,6 +76,15 @@ export default function ImportPage() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const { data: suppliers, isLoading: loadingSuppliers } = useActiveSuppliers();
+
+  // Impact-stock state (supplier flow, step 4)
+  const [impactConfirmOpen, setImpactConfirmOpen] = useState(false);
+  const [impactLoading, setImpactLoading] = useState(false);
+  const [impactResult, setImpactResult] = useState<{
+    productsCreated: number;
+    productsUpdated: number;
+    errors: Array<{ row: number; message: string }>;
+  } | null>(null);
 
   // Determine which fields to use based on import type
   const isSupplierImport = !!selectedSupplierId;
@@ -177,6 +195,27 @@ export default function ImportPage() {
     setSheetNames([]);
     setSelectedSheet('');
     setUploadProgress(null);
+    setImpactResult(null);
+    setImpactConfirmOpen(false);
+  };
+
+  const handleImpactStock = async () => {
+    if (!confirmResult) return;
+    setImpactLoading(true);
+    setError('');
+    try {
+      const res = await importApi.impactStockSupplier(confirmResult.jobId);
+      setImpactResult({
+        productsCreated: res.productsCreated,
+        productsUpdated: res.productsUpdated,
+        errors: res.errors,
+      });
+      setImpactConfirmOpen(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al impactar en stock');
+    } finally {
+      setImpactLoading(false);
+    }
   };
 
   // Update mapping for a field
@@ -197,11 +236,23 @@ export default function ImportPage() {
     return Object.entries(mapping).find(([, h]) => h === header)?.[0];
   };
 
+  // Download the previewed/imported data as Excel
+  const handleExportExcel = () => {
+    if (!previewResult) return;
+    exportPreviewToExcel(
+      previewResult.preview,
+      isSupplierImport ? 'supplier' : 'standard',
+      file?.name ?? 'planilla-importada',
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Importar Excel</h1>
-        <p className="text-muted-foreground">Carga masiva de productos desde archivo Excel</p>
+        <p className="text-muted-foreground">
+          Carga masiva desde planillas: productos al catálogo general, o listas de precios de un proveedor. El sistema detecta columnas, previsualiza el resultado y confirma con un solo paso.
+        </p>
       </div>
 
       {/* Steps indicator */}
@@ -668,11 +719,19 @@ export default function ImportPage() {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {!uploadResult?.autoParsed && (
                 <Button variant="outline" onClick={() => setStep('mapping')}>Volver al mapeo</Button>
               )}
               <Button variant="outline" onClick={reset}>Cancelar</Button>
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                disabled={previewResult.preview.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar a Excel
+              </Button>
               <Button
                 onClick={handleConfirm}
                 disabled={loading || previewResult.validRows === 0}
@@ -748,13 +807,104 @@ export default function ImportPage() {
               </div>
             )}
 
-            <Button onClick={reset}>
-              <Upload className="h-4 w-4 mr-2" />
-              Importar otro archivo
-            </Button>
+            {isSupplierImport && impactResult && (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 space-y-2">
+                <p className="text-sm font-medium text-emerald-800 flex items-center gap-2">
+                  <PackageCheck className="h-4 w-4" />
+                  Impacto en Productos + Stock completado
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md border bg-white p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Productos creados</p>
+                    <p className="text-xl font-bold text-emerald-600">{impactResult.productsCreated}</p>
+                  </div>
+                  <div className="rounded-md border bg-white p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Productos actualizados</p>
+                    <p className="text-xl font-bold text-blue-600">{impactResult.productsUpdated}</p>
+                  </div>
+                </div>
+                {impactResult.errors.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    <p className="text-xs font-medium text-amber-800">
+                      {impactResult.errors.length} fila(s) con error:
+                    </p>
+                    {impactResult.errors.map((e, i) => (
+                      <p key={i} className="text-xs text-amber-700">
+                        Fila {e.row}: {e.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3 flex-wrap">
+              <Button onClick={reset}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar otro archivo
+              </Button>
+              {previewResult && (
+                <Button variant="outline" onClick={handleExportExcel}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar planilla a Excel
+                </Button>
+              )}
+              {isSupplierImport && !impactResult && (
+                <Button
+                  variant="default"
+                  onClick={() => setImpactConfirmOpen(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <PackageCheck className="h-4 w-4 mr-2" />
+                  Impactar en Stock
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={impactConfirmOpen} onOpenChange={setImpactConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PackageCheck className="h-5 w-5 text-emerald-600" />
+              Impactar en Stock
+            </DialogTitle>
+            <DialogDescription className="pt-2 space-y-2">
+              <span className="block">
+                Se tomará la lista del proveedor recién importada y se aplicará al catálogo de Productos + Stock usando el mismo SKU del proveedor:
+              </span>
+              <span className="block">
+                • Los productos cuyo SKU ya existe en Productos serán <strong>actualizados</strong> en precio y descuento (el stock no se modifica).
+              </span>
+              <span className="block">
+                • Los productos cuyo SKU no existe serán <strong>creados</strong> en Productos con stock 0 bajo la familia &quot;Sin clasificar&quot;.
+              </span>
+              <span className="block pt-2 text-amber-700">
+                Esta acción no afecta a la lista del proveedor, solo al catálogo general.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setImpactConfirmOpen(false)}
+              disabled={impactLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImpactStock}
+              disabled={impactLoading}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {impactLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar e impactar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

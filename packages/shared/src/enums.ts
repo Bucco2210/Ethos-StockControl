@@ -119,4 +119,5 @@ export enum ImportStatus {
   CONFIRMED = 'confirmed',
   COMPLETED = 'completed',
   FAILED = 'failed',
+  REVERTED = 'reverted',
 }
