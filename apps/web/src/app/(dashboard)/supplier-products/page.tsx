@@ -74,7 +74,9 @@ export default function SupplierProductsPage() {
         <Truck className="h-7 w-7 text-primary" />
         <div>
           <h1 className="text-2xl font-bold">Lista por Proveedor</h1>
-          <p className="text-muted-foreground">Productos importados desde listas de proveedores</p>
+          <p className="text-muted-foreground">
+            Productos tal como vienen en la lista de cada proveedor, con sus códigos, precios y descuentos originales. Punto de partida para unificar y comparar.
+          </p>
         </div>
       </div>
 

@@ -7,6 +7,8 @@ export interface CreateMovementData {
   type: MovementType;
   quantity: number;
   reason: string;
+  supplierId?: string;
+  documentNumber?: string;
 }
 
 export interface MovementResult {

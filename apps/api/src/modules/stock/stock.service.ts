@@ -25,6 +25,16 @@ export class StockService {
   async createMovement(dto: CreateMovementDto, userId: string) {
     const product = await this.productsService.findById(dto.productId);
 
+    // For incoming stock, supplier + remito are mandatory
+    if (dto.type === MovementType.IN) {
+      if (!dto.supplierId) {
+        throw new BadRequestException('El proveedor es obligatorio en entradas de stock');
+      }
+      if (!dto.documentNumber || !dto.documentNumber.trim()) {
+        throw new BadRequestException('El número de remito es obligatorio en entradas de stock');
+      }
+    }
+
     // Calculate stock change
     let quantityDelta: number;
     switch (dto.type) {
@@ -60,6 +70,8 @@ export class StockService {
       reason: dto.reason,
       previousStock,
       newStock,
+      supplierId: dto.supplierId,
+      documentNumber: dto.documentNumber?.trim(),
       performedBy: userId,
     });
 
@@ -107,6 +119,7 @@ export class StockService {
         .find(filter)
         .populate('productId', 'name sku')
         .populate('performedBy', 'firstName lastName')
+        .populate('supplierId', 'name code')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -126,6 +139,7 @@ export class StockService {
     return this.movementModel
       .find({ productId })
       .populate('performedBy', 'firstName lastName')
+      .populate('supplierId', 'name code')
       .sort({ createdAt: -1 })
       .limit(limit);
   }

@@ -23,14 +23,36 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useCreateMovement } from '../api/use-stock';
+import { useActiveSuppliers } from '@/features/suppliers/api/use-suppliers';
 import { MovementType } from '@ethos/shared';
 import type { Product } from '@ethos/shared';
 
-const movementSchema = z.object({
-  type: z.nativeEnum(MovementType),
-  quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1'),
-  reason: z.string().min(1, 'El motivo es requerido'),
-});
+const movementSchema = z
+  .object({
+    type: z.nativeEnum(MovementType),
+    quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1'),
+    reason: z.string().min(1, 'El motivo es requerido'),
+    supplierId: z.string().optional(),
+    documentNumber: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === MovementType.IN) {
+      if (!data.supplierId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El proveedor es obligatorio en entradas',
+          path: ['supplierId'],
+        });
+      }
+      if (!data.documentNumber || !data.documentNumber.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El número de remito es obligatorio en entradas',
+          path: ['documentNumber'],
+        });
+      }
+    }
+  });
 
 type MovementFormData = z.infer<typeof movementSchema>;
 
@@ -69,6 +91,7 @@ export function StockMovementDialog({
   defaultType = MovementType.IN,
 }: StockMovementDialogProps) {
   const createMutation = useCreateMovement();
+  const { data: suppliers } = useActiveSuppliers();
   const [serverError, setServerError] = useState('');
 
   const {
@@ -84,13 +107,15 @@ export function StockMovementDialog({
       type: defaultType,
       quantity: 1,
       reason: '',
+      supplierId: '',
+      documentNumber: '',
     },
   });
 
   // Sync form when dialog opens with a different type/product
   useEffect(() => {
     if (open) {
-      reset({ type: defaultType, quantity: 1, reason: '' });
+      reset({ type: defaultType, quantity: 1, reason: '', supplierId: '', documentNumber: '' });
       setServerError('');
     }
   }, [open, defaultType, reset]);
@@ -109,18 +134,25 @@ export function StockMovementDialog({
     if (!product) return;
     setServerError('');
 
-    createMutation.mutate(
-      { productId: product._id, ...data },
-      {
-        onSuccess: () => {
-          reset();
-          onOpenChange(false);
-        },
-        onError: (err: any) => {
-          setServerError(err.response?.data?.message || 'Error al registrar movimiento');
-        },
+    const payload = {
+      productId: product._id,
+      type: data.type,
+      quantity: data.quantity,
+      reason: data.reason,
+      supplierId: data.type === MovementType.IN ? data.supplierId || undefined : undefined,
+      documentNumber:
+        data.type === MovementType.IN ? data.documentNumber?.trim() || undefined : undefined,
+    };
+
+    createMutation.mutate(payload, {
+      onSuccess: () => {
+        reset();
+        onOpenChange(false);
       },
-    );
+      onError: (err: any) => {
+        setServerError(err.response?.data?.message || 'Error al registrar movimiento');
+      },
+    });
   };
 
   if (!product) return null;
@@ -213,6 +245,52 @@ export function StockMovementDialog({
               <p className="text-sm text-destructive">{errors.reason.message}</p>
             )}
           </div>
+
+          {currentType === MovementType.IN && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="supplierId">
+                  Proveedor <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={watch('supplierId') || ''}
+                  onValueChange={(val) => setValue('supplierId', val, { shouldValidate: true })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar proveedor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers?.length === 0 ? (
+                      <SelectItem value="_empty" disabled>No hay proveedores activos</SelectItem>
+                    ) : (
+                      suppliers?.map((s) => (
+                        <SelectItem key={s._id} value={s._id}>
+                          {s.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {errors.supplierId && (
+                  <p className="text-sm text-destructive">{errors.supplierId.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="documentNumber">
+                  Número de remito <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="documentNumber"
+                  placeholder="Ej: R-0001-00012345"
+                  {...register('documentNumber')}
+                />
+                {errors.documentNumber && (
+                  <p className="text-sm text-destructive">{errors.documentNumber.message}</p>
+                )}
+              </div>
+            </>
+          )}
 
           <Button type="submit" className="w-full" disabled={createMutation.isPending}>
             {createMutation.isPending ? 'Registrando...' : 'Confirmar movimiento'}

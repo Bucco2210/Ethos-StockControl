@@ -175,4 +175,39 @@ export class ImportController {
   async confirmSupplier(@Param('jobId') jobId: string) {
     return this.supplierImportService.confirm(jobId);
   }
+
+  /**
+   * Step 4 (opcional): Impactar la lista del proveedor en Productos + Stock.
+   * Upsert por SKU: existentes se actualizan en precio/descuento, nuevos se crean.
+   */
+  @Post('supplier/:jobId/impact-stock')
+  @RequirePermissions(Permission.IMPORT_EXECUTE)
+  async impactStockSupplier(
+    @Param('jobId') jobId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.supplierImportService.impactStock(jobId, userId);
+  }
+
+  /**
+   * Historial completo de importaciones de proveedor (team-wide).
+   */
+  @Get('supplier/history')
+  @RequirePermissions(Permission.IMPORT_READ)
+  async getSupplierHistory() {
+    return this.supplierImportService.getHistory();
+  }
+
+  /**
+   * Revertir una importación de proveedor: restaura precios previos
+   * y borra los productos que se hubieran creado.
+   */
+  @Post('supplier/:jobId/revert')
+  @RequirePermissions(Permission.IMPORT_EXECUTE)
+  async revertSupplier(
+    @Param('jobId') jobId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.supplierImportService.revert(jobId, userId);
+  }
 }

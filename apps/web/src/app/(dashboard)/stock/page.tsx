@@ -5,7 +5,6 @@ import { type ColumnDef } from '@tanstack/react-table';
 import {
   PackagePlus,
   PackageMinus,
-  ClipboardEdit,
   History,
   AlertTriangle,
 } from 'lucide-react';
@@ -142,15 +141,6 @@ export default function StockPage() {
                   <PackageMinus className="h-4 w-4 mr-1" />
                   Salida
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  onClick={() => openMovement(row.original, MovementType.ADJUSTMENT)}
-                  title="Ajustar stock"
-                >
-                  <ClipboardEdit className="h-4 w-4" />
-                </Button>
               </>
             )}
             <Button
@@ -186,7 +176,9 @@ export default function StockPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Stock</h1>
-        <p className="text-muted-foreground">Control de inventario y movimientos de stock</p>
+        <p className="text-muted-foreground">
+          Niveles actuales de stock, alertas de stock bajo o agotado, y registro de entradas y salidas con su historial por producto.
+        </p>
       </div>
 
       {/* Summary cards */}

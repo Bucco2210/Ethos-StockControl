@@ -94,7 +94,7 @@ export default function KardexPage() {
             Kardex de Inventario
           </h1>
           <p className="text-muted-foreground">
-            Control de movimientos con costeo FIFO
+            Historial detallado de entradas y salidas por producto, con costeo FIFO para conocer el costo real de cada unidad vendida y el margen efectivo.
           </p>
         </div>
       </div>

@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -38,6 +39,16 @@ export class ProductsController {
   @RequirePermissions(Permission.STOCK_READ)
   getLowStock() {
     return this.productsService.getLowStockProducts();
+  }
+
+  @Get('by-sku/:sku')
+  @RequirePermissions(Permission.PRODUCTS_READ)
+  async findBySku(@Param('sku') sku: string) {
+    const product = await this.productsService.findBySku(sku);
+    if (!product) {
+      throw new NotFoundException(`No existe producto con SKU "${sku}"`);
+    }
+    return product;
   }
 
   @Get(':id')

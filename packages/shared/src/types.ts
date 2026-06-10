@@ -68,6 +68,8 @@ export interface StockMovement extends BaseEntity {
   reason: string;
   previousStock: number;
   newStock: number;
+  supplierId?: string | { _id: string; name: string; code?: string };
+  documentNumber?: string;
   performedBy: string;
 }
 

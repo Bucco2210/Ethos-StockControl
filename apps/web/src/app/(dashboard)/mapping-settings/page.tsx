@@ -93,7 +93,7 @@ export default function MappingSettingsPage() {
           Configuración de Auto-Mapeo
         </h1>
         <p className="text-muted-foreground">
-          Define cómo se vinculan los productos de proveedores con productos unificados durante la importación.
+          Reglas para vincular automáticamente los productos de cada proveedor con tus productos unificados al importar listas, y margen de ganancia por defecto al crear productos nuevos.
         </p>
       </div>
 

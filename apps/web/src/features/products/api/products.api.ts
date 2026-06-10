@@ -24,6 +24,11 @@ export const productsApi = {
     return res.data;
   },
 
+  getBySku: async (sku: string): Promise<Product> => {
+    const res = await apiClient.get(`/products/by-sku/${encodeURIComponent(sku)}`);
+    return res.data;
+  },
+
   create: async (data: CreateProductFormData): Promise<Product> => {
     const res = await apiClient.post('/products', data);
     return res.data;

@@ -75,7 +75,7 @@ export default function SuppliersPage() {
         <div>
           <h1 className="text-2xl font-bold">Proveedores</h1>
           <p className="text-muted-foreground">
-            Gestiona los proveedores y sus listas de precios
+            Alta y administración de proveedores. Cada proveedor tiene sus propios códigos, precios y descuentos, que después podés importar y unificar.
           </p>
         </div>
       </div>
