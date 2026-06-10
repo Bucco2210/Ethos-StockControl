@@ -39,9 +39,10 @@ export class SupplierProductsService {
     product: SupplierProductDocument;
     isNew: boolean;
   }> {
+    const normalizedSku = dto.supplierSku.trim().toUpperCase();
     const existing = await this.supplierProductModel.findOne({
       supplierId: new Types.ObjectId(dto.supplierId),
-      supplierSku: dto.supplierSku,
+      supplierSku: normalizedSku,
     });
 
     if (existing) {

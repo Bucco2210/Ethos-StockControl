@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ProductStatus } from '@ethos/shared';
+import { formatCurrency } from '@/lib/format';
 import { useFamilies, useSubfamilies } from '@/features/families/api/use-families';
 import {
   createProductSchema,
@@ -67,6 +68,7 @@ export function ProductForm({
           stockMin: product.stockMin,
           basePrice: product.basePrice,
           discountPercent: product.discountPercent,
+          currency: (product.currency ?? 'ARS') as 'ARS' | 'USD',
           status: product.status as ProductStatus,
         }
       : {
@@ -78,6 +80,7 @@ export function ProductForm({
           stockMin: 0,
           basePrice: 0,
           discountPercent: 0,
+          currency: 'ARS',
           status: ProductStatus.ACTIVE,
         },
   });
@@ -208,13 +211,28 @@ export function ProductForm({
       )}
 
       {/* Pricing */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="basePrice">Precio base ($)</Label>
+          <Label htmlFor="basePrice">Precio base</Label>
           <Input id="basePrice" type="number" min={0} step={0.01} {...register('basePrice')} />
           {errors.basePrice && (
             <p className="text-sm text-destructive">{errors.basePrice.message}</p>
           )}
+        </div>
+        <div className="space-y-2">
+          <Label>Moneda</Label>
+          <Select
+            value={watch('currency') ?? 'ARS'}
+            onValueChange={(val) => setValue('currency', val as 'ARS' | 'USD')}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ARS">ARS — Pesos</SelectItem>
+              <SelectItem value="USD">USD — Dólares</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="discountPercent">Descuento (%)</Label>
@@ -223,7 +241,7 @@ export function ProductForm({
         <div className="space-y-2">
           <Label>Precio final</Label>
           <div className="flex h-10 items-center rounded-md border bg-muted/50 px-3 text-sm font-semibold">
-            ${finalPrice.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            {formatCurrency(finalPrice, watch('currency') ?? 'ARS')}
           </div>
         </div>
       </div>

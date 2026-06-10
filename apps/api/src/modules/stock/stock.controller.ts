@@ -42,4 +42,10 @@ export class StockController {
   ) {
     return this.stockService.getProductMovements(productId, limit);
   }
+
+  @Get('last-supplier/:productId')
+  @RequirePermissions(Permission.STOCK_READ)
+  getLastSupplier(@Param('productId') productId: string) {
+    return this.stockService.getLastSupplierForProduct(productId);
+  }
 }

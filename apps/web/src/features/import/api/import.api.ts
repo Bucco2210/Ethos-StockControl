@@ -34,6 +34,10 @@ export interface ConfirmResult {
   productsCreated: number;
   familiesCreated: number;
   subfamiliesCreated: number;
+  /** Only populated for supplier imports */
+  supplierProductsCreated?: number;
+  /** Only populated for supplier imports */
+  supplierProductsUpdated?: number;
   errors: Array<{ row: number; message: string }>;
 }
 

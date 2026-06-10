@@ -9,8 +9,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/shared/data-table';
+import { formatCurrency } from '@/lib/format';
 import { useProducts } from '@/features/products/api/use-products';
 import { StockMovementDialog } from '@/features/stock/components/stock-movement-dialog';
 import { MovementHistory } from '@/features/stock/components/movement-history';
@@ -70,30 +70,30 @@ export default function StockPage() {
         header: 'Stock',
         cell: ({ row }) => {
           const { stock, stockMin } = row.original;
-          const isLow = stock <= stockMin;
           const isEmpty = stock === 0;
+          const isLow = !isEmpty && stock <= stockMin;
+          const badgeClass = isEmpty
+            ? 'border-red-200 bg-red-50 text-red-700'
+            : isLow
+              ? 'border-amber-200 bg-amber-50 text-amber-700'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+          const label = isEmpty ? 'Sin stock' : isLow ? 'Bajo' : 'OK';
+          const numberClass = isEmpty
+            ? 'text-red-700'
+            : isLow
+              ? 'text-amber-700'
+              : 'text-emerald-700';
           return (
             <div className="flex items-center gap-2">
-              <span
-                className={`text-lg font-bold ${
-                  isEmpty
-                    ? 'text-destructive'
-                    : isLow
-                      ? 'text-amber-600'
-                      : ''
-                }`}
-              >
+              <span className={`text-lg font-bold tabular-nums ${numberClass}`}>
                 {stock}
               </span>
-              {isEmpty && (
-                <Badge variant="destructive" className="text-[10px]">Sin stock</Badge>
-              )}
-              {!isEmpty && isLow && (
-                <div className="flex items-center gap-1">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="text-xs text-amber-600">Bajo</span>
-                </div>
-              )}
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${badgeClass}`}
+              >
+                {(isEmpty || isLow) && <AlertTriangle className="h-3 w-3" />}
+                {label}
+              </span>
             </div>
           );
         },
@@ -110,7 +110,7 @@ export default function StockPage() {
         header: 'Precio',
         cell: ({ row }) => (
           <span className="text-sm">
-            ${row.original.finalPrice.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            {formatCurrency(row.original.finalPrice, row.original.currency)}
           </span>
         ),
       },

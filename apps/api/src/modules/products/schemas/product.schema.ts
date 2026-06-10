@@ -39,6 +39,9 @@ export class Product {
   @Prop({ required: true, default: 0, min: 0 })
   finalPrice: number;
 
+  @Prop({ type: String, enum: ['ARS', 'USD'], default: 'ARS' })
+  currency: 'ARS' | 'USD';
+
   @Prop({ required: true, enum: ProductStatus, default: ProductStatus.ACTIVE })
   status: ProductStatus;
 

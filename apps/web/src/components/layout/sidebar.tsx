@@ -19,6 +19,7 @@ import {
   Truck,
   History,
   QrCode,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
@@ -40,6 +41,7 @@ const navigation: NavItem[] = [
   { name: 'Stock', href: '/stock', icon: BarChart3, permission: Permission.STOCK_READ },
   { name: 'Escanear QR', href: '/scan', icon: QrCode, permission: Permission.STOCK_ADJUST },
   { name: 'Kardex', href: '/kardex', icon: ClipboardList, permission: Permission.KARDEX_READ },
+  { name: 'Ventas', href: '/ventas', icon: TrendingUp, permission: Permission.SALES_READ },
   { name: 'Productos', href: '/products', icon: Package, permission: Permission.PRODUCTS_READ },
   { name: 'Unificados', href: '/unified-products', icon: Layers, permission: Permission.PRODUCTS_READ },
   { name: 'Familias', href: '/families', icon: FolderTree, permission: Permission.FAMILIES_READ },

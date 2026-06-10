@@ -23,3 +23,12 @@ export function useProductMovements(productId?: string) {
     enabled: !!productId,
   });
 }
+
+export function useLastSupplierForProduct(productId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['stock-last-supplier', productId],
+    queryFn: () => stockApi.getLastSupplier(productId!),
+    enabled: !!productId && enabled,
+    staleTime: 30_000,
+  });
+}

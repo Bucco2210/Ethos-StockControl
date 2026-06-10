@@ -8,7 +8,7 @@ export class SupplierProduct {
   @Prop({ type: Types.ObjectId, ref: 'Supplier', required: true })
   supplierId: Types.ObjectId;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ required: true, trim: true, uppercase: true })
   supplierSku: string;
 
   @Prop({ required: true, trim: true })

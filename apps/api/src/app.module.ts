@@ -14,6 +14,7 @@ import { SupplierProductsModule } from './modules/supplier-products/supplier-pro
 import { UnifiedProductsModule } from './modules/unified-products/unified-products.module';
 import { MappingSettingsModule } from './modules/mapping-settings/mapping-settings.module';
 import { KardexModule } from './modules/kardex/kardex.module';
+import { SalesModule } from './modules/sales/sales.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { GlobalExceptionFilter } from './common/filters';
 import { AdminSeeder } from './common/seeders/admin.seeder';
@@ -48,6 +49,7 @@ import { DataSeeder } from './common/seeders/data.seeder';
     UnifiedProductsModule,
     MappingSettingsModule,
     KardexModule,
+    SalesModule,
   ],
   providers: [
     // Global JWT auth guard — all routes require auth unless @Public()

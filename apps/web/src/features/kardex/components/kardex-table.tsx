@@ -74,11 +74,15 @@ export function KardexTable({ data, isLoading }: KardexTableProps) {
       },
       {
         id: 'entryQty',
-        header: () => <span className="text-emerald-600">Ent. Cant.</span>,
+        header: () => <span className="text-xs uppercase tracking-wide">Cant.</span>,
+        meta: {
+          headerClassName:
+            'bg-emerald-50 text-emerald-800 border-l-4 border-l-emerald-400',
+        },
         cell: ({ row }) => {
           const qty = row.original.entryQuantity;
           return qty > 0 ? (
-            <span className="text-sm font-medium text-emerald-600">{qty}</span>
+            <span className="text-sm font-semibold text-emerald-700 tabular-nums">{qty}</span>
           ) : (
             <span className="text-muted-foreground">-</span>
           );
@@ -86,11 +90,12 @@ export function KardexTable({ data, isLoading }: KardexTableProps) {
       },
       {
         id: 'entryAmount',
-        header: () => <span className="text-emerald-600">Ent. Importe</span>,
+        header: () => <span className="text-xs uppercase tracking-wide">Importe</span>,
+        meta: { headerClassName: 'bg-emerald-50 text-emerald-800' },
         cell: ({ row }) => {
           const amt = row.original.entryAmount;
           return amt > 0 ? (
-            <span className="text-sm text-emerald-600">{formatCurrency(amt)}</span>
+            <span className="text-sm text-emerald-700 tabular-nums">{formatCurrency(amt)}</span>
           ) : (
             <span className="text-muted-foreground">-</span>
           );
@@ -98,11 +103,14 @@ export function KardexTable({ data, isLoading }: KardexTableProps) {
       },
       {
         id: 'exitQty',
-        header: () => <span className="text-red-600">Sal. Cant.</span>,
+        header: () => <span className="text-xs uppercase tracking-wide">Cant.</span>,
+        meta: {
+          headerClassName: 'bg-red-50 text-red-800 border-l-4 border-l-red-400',
+        },
         cell: ({ row }) => {
           const qty = row.original.exitQuantity;
           return qty > 0 ? (
-            <span className="text-sm font-medium text-red-600">{qty}</span>
+            <span className="text-sm font-semibold text-red-700 tabular-nums">{qty}</span>
           ) : (
             <span className="text-muted-foreground">-</span>
           );
@@ -110,11 +118,12 @@ export function KardexTable({ data, isLoading }: KardexTableProps) {
       },
       {
         id: 'exitAmount',
-        header: () => <span className="text-red-600">Sal. Importe</span>,
+        header: () => <span className="text-xs uppercase tracking-wide">Importe</span>,
+        meta: { headerClassName: 'bg-red-50 text-red-800' },
         cell: ({ row }) => {
           const amt = row.original.exitAmount;
           return amt > 0 ? (
-            <span className="text-sm text-red-600">{formatCurrency(amt)}</span>
+            <span className="text-sm text-red-700 tabular-nums">{formatCurrency(amt)}</span>
           ) : (
             <span className="text-muted-foreground">-</span>
           );
@@ -122,16 +131,21 @@ export function KardexTable({ data, isLoading }: KardexTableProps) {
       },
       {
         id: 'balanceQty',
-        header: () => <span className="font-bold">Saldo Cant.</span>,
+        header: () => <span className="text-xs uppercase tracking-wide font-bold">Cant.</span>,
+        meta: {
+          headerClassName:
+            'bg-slate-100 text-slate-900 border-l-4 border-l-slate-400',
+        },
         cell: ({ row }) => (
-          <span className="text-sm font-bold">{row.original.balanceQuantity}</span>
+          <span className="text-sm font-bold tabular-nums">{row.original.balanceQuantity}</span>
         ),
       },
       {
         id: 'balanceAmount',
-        header: () => <span className="font-bold">Saldo Importe</span>,
+        header: () => <span className="text-xs uppercase tracking-wide font-bold">Importe</span>,
+        meta: { headerClassName: 'bg-slate-100 text-slate-900' },
         cell: ({ row }) => (
-          <span className="text-sm font-bold">{formatCurrency(row.original.balanceAmount)}</span>
+          <span className="text-sm font-bold tabular-nums">{formatCurrency(row.original.balanceAmount)}</span>
         ),
       },
       {

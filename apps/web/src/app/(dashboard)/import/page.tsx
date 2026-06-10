@@ -761,20 +761,28 @@ export default function ImportPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {isSupplierImport ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-md border p-4 text-center">
-                  <p className="text-xs text-muted-foreground">Productos creados</p>
-                  <p className="text-2xl font-bold text-emerald-600">
-                    {(confirmResult as any).supplierProductsCreated ?? confirmResult.productsCreated}
-                  </p>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-md border p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Nuevos en la lista del proveedor</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {confirmResult.supplierProductsCreated ?? confirmResult.productsCreated}
+                    </p>
+                  </div>
+                  <div className="rounded-md border p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Precios actualizados</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {confirmResult.supplierProductsUpdated ?? 0}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-md border p-4 text-center">
-                  <p className="text-xs text-muted-foreground">Productos actualizados</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {(confirmResult as any).supplierProductsUpdated ?? 0}
-                  </p>
-                </div>
-              </div>
+                {!impactResult && (
+                  <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-900">
+                    Los cambios se aplicaron a la lista del proveedor. Para reflejar los nuevos
+                    precios en <strong>Productos + Stock</strong>, apretá <em>Impactar en Stock</em>.
+                  </div>
+                )}
+              </>
             ) : (
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-md border p-4 text-center">

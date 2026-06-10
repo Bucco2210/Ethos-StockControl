@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useCreateMovement } from '../api/use-stock';
+import { useCreateMovement, useLastSupplierForProduct } from '../api/use-stock';
 import { useActiveSuppliers } from '@/features/suppliers/api/use-suppliers';
 import { MovementType } from '@ethos/shared';
 import type { Product } from '@ethos/shared';
@@ -92,6 +92,10 @@ export function StockMovementDialog({
 }: StockMovementDialogProps) {
   const createMutation = useCreateMovement();
   const { data: suppliers } = useActiveSuppliers();
+  const { data: lastSupplier } = useLastSupplierForProduct(
+    product?._id,
+    open && !!product,
+  );
   const [serverError, setServerError] = useState('');
 
   const {
@@ -290,6 +294,21 @@ export function StockMovementDialog({
                 )}
               </div>
             </>
+          )}
+
+          {currentType === MovementType.OUT && (
+            <div className="space-y-2">
+              <Label>Proveedor</Label>
+              <Input
+                value={lastSupplier?.supplier?.name ?? 'Sin entradas previas'}
+                disabled
+                readOnly
+                className="bg-muted/40"
+              />
+              <p className="text-xs text-muted-foreground">
+                Proveedor heredado de la última entrada del producto.
+              </p>
+            </div>
           )}
 
           <Button type="submit" className="w-full" disabled={createMutation.isPending}>

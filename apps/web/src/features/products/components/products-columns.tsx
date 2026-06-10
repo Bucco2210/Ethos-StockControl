@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2, ArrowUpDown, AlertTriangle, QrCode } from 'lucide-react';
+import { formatCurrency } from '@/lib/format';
 import type { Product } from '@ethos/shared';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'secondary' | 'destructive' }> = {
@@ -104,7 +105,7 @@ export function getProductColumns({
       header: 'Precio base',
       cell: ({ row }) => (
         <span className="text-sm">
-          ${row.original.basePrice.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+          {formatCurrency(row.original.basePrice, row.original.currency)}
         </span>
       ),
     },
@@ -116,7 +117,7 @@ export function getProductColumns({
         return (
           <div>
             <span className="text-sm font-medium">
-              ${row.original.finalPrice.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              {formatCurrency(row.original.finalPrice, row.original.currency)}
             </span>
             {hasDiscount && (
               <Badge variant="warning" className="ml-1.5 text-[10px] px-1.5 py-0">

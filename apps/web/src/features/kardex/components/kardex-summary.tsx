@@ -1,6 +1,6 @@
 'use client';
 
-import { Package, DollarSign, TrendingUp, Layers } from 'lucide-react';
+import { Package, DollarSign, TrendingUp } from 'lucide-react';
 import type { KardexSummary as KardexSummaryType } from '../api/kardex.api';
 
 interface KardexSummaryProps {
@@ -15,8 +15,8 @@ function formatCurrency(value: number) {
 export function KardexSummary({ summary, isLoading }: KardexSummaryProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="rounded-lg border p-4 animate-pulse">
             <div className="h-4 bg-muted rounded w-24 mb-2" />
             <div className="h-8 bg-muted rounded w-16" />
@@ -45,16 +45,10 @@ export function KardexSummary({ summary, isLoading }: KardexSummaryProps) {
       icon: TrendingUp,
       format: formatCurrency,
     },
-    {
-      label: 'Lotes activos',
-      value: summary?.activeLots ?? 0,
-      icon: Layers,
-      format: (v: number) => v.toString(),
-    },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card) => (
         <div key={card.label} className="rounded-lg border p-4">
           <div className="flex items-center gap-2 mb-1">

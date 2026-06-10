@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsIn,
   IsMongoId,
   IsNumber,
   IsOptional,
@@ -41,6 +42,10 @@ export class UpdateProductDto {
   @Max(100)
   @IsOptional()
   discountPercent?: number;
+
+  @IsIn(['ARS', 'USD'])
+  @IsOptional()
+  currency?: 'ARS' | 'USD';
 
   @IsEnum(ProductStatus)
   @IsOptional()

@@ -39,6 +39,9 @@ export enum Permission {
   // Kardex
   KARDEX_READ = 'kardex:read',
   KARDEX_MANAGE = 'kardex:manage',
+
+  // Sales (report)
+  SALES_READ = 'sales:read',
 }
 
 // ==================== ROLE → PERMISSIONS MAP ====================
@@ -63,6 +66,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.SUPPLIERS_MANAGE,
     Permission.KARDEX_READ,
     Permission.KARDEX_MANAGE,
+    Permission.SALES_READ,
   ],
 
   [Role.MANAGER]: [
@@ -79,6 +83,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.SUPPLIERS_MANAGE,
     Permission.KARDEX_READ,
     Permission.KARDEX_MANAGE,
+    Permission.SALES_READ,
   ],
 
   [Role.USER]: [
@@ -88,6 +93,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.IMPORT_READ,
     Permission.SUPPLIERS_READ,
     Permission.KARDEX_READ,
+    Permission.SALES_READ,
   ],
 };
 

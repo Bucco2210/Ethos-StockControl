@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsIn,
   IsMongoId,
   IsNotEmpty,
   IsNumber,
@@ -50,6 +51,10 @@ export class CreateProductDto {
   @Max(100)
   @IsOptional()
   discountPercent?: number;
+
+  @IsIn(['ARS', 'USD'])
+  @IsOptional()
+  currency?: 'ARS' | 'USD';
 
   @IsEnum(ProductStatus)
   @IsOptional()

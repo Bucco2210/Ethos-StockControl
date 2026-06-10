@@ -199,7 +199,7 @@ export class SupplierImportService {
 
   private rowToData(row: ParsedSupplierRow): Record<string, any> {
     return {
-      supplierSku: row.supplierSku,
+      supplierSku: row.supplierSku?.trim().toUpperCase(),
       supplierName: row.supplierName,
       supplierDescription: row.supplierDescription,
       supplierCategory: row.supplierCategory,
@@ -444,8 +444,10 @@ export class SupplierImportService {
     const errors: string[] = [];
     const data: Record<string, any> = {};
 
-    // Extract mapped values
-    const supplierSku = mapping.supplierSku ? String(row[mapping.supplierSku] ?? '').trim() : '';
+    // Extract mapped values — SKU is normalized (trim + uppercase) so reimports match consistently
+    const supplierSku = mapping.supplierSku
+      ? String(row[mapping.supplierSku] ?? '').trim().toUpperCase()
+      : '';
     const supplierName = mapping.supplierName ? String(row[mapping.supplierName] ?? '').trim() : '';
     const supplierDescription = mapping.supplierDescription
       ? String(row[mapping.supplierDescription] ?? '').trim()
@@ -600,12 +602,14 @@ export class SupplierImportService {
 
         const basePrice = Number(data.basePrice ?? 0);
         const discountPercent = Number(data.discountPercent ?? 0);
+        const currency = data.currency === 'USD' ? 'USD' : 'ARS';
         const existing = await this.productsService.findBySku(sku);
 
         if (existing) {
           await this.productsService.update(existing._id.toString(), {
             basePrice,
             discountPercent,
+            currency,
           });
           productsUpdated++;
         } else {
@@ -619,6 +623,7 @@ export class SupplierImportService {
               stockMin: 0,
               basePrice,
               discountPercent,
+              currency,
             },
             userId,
           );

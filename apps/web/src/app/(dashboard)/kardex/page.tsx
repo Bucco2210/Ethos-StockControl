@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ClipboardList, Plus, Package, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchInput } from '@/components/shared/search-input';
 import { useProducts } from '@/features/products/api/use-products';
 import { useKardexEntries, useKardexSummary, useKardexLots } from '@/features/kardex/api/use-kardex';
 import { KardexSummary } from '@/features/kardex/components/kardex-summary';
@@ -30,6 +31,7 @@ export default function KardexPage() {
   const [productType, setProductType] = useState<ProductEntityType>(ProductEntityType.PRODUCT);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [productSearch, setProductSearch] = useState('');
+  const [selectedProductCache, setSelectedProductCache] = useState<Product | null>(null);
 
   // Filters
   const [movementType, setMovementType] = useState<string>('');
@@ -40,28 +42,33 @@ export default function KardexPage() {
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'kardex' | 'lots'>('kardex');
 
-  // Fetch products for selector
-  const { data: productsData } = useProducts({ limit: 200 });
+  // Fetch products for selector — server-side search
+  const { data: productsData } = useProducts({
+    limit: 50,
+    search: productSearch || undefined,
+  });
   const products = productsData?.data ?? [];
 
-  // Filter products by search
-  const filteredProducts = useMemo(() => {
-    if (!productSearch) return products.slice(0, 20);
-    const term = productSearch.toLowerCase();
-    return products
-      .filter(
-        (p) =>
-          p.name.toLowerCase().includes(term) ||
-          p.sku.toLowerCase().includes(term),
-      )
-      .slice(0, 20);
-  }, [products, productSearch]);
+  // Cache the selected product so it doesn't disappear when the search filter changes
+  useEffect(() => {
+    if (!selectedProductId) {
+      setSelectedProductCache(null);
+      return;
+    }
+    const found = products.find((p) => p._id === selectedProductId);
+    if (found) setSelectedProductCache(found);
+  }, [products, selectedProductId]);
 
   // Selected product info
-  const selectedProduct = useMemo(
-    () => products.find((p) => p._id === selectedProductId),
-    [products, selectedProductId],
-  );
+  const selectedProduct =
+    products.find((p) => p._id === selectedProductId) ?? selectedProductCache;
+
+  // Show the selected product first if it's not in the current results
+  const productsToShow = useMemo(() => {
+    if (!selectedProduct) return products;
+    const inList = products.some((p) => p._id === selectedProduct._id);
+    return inList ? products : [selectedProduct, ...products];
+  }, [products, selectedProduct]);
 
   // Kardex data
   const kardexQuery = selectedProductId
@@ -139,21 +146,21 @@ export default function KardexPage() {
                 <SelectValue placeholder="Seleccionar un producto..." />
               </SelectTrigger>
               <SelectContent>
-                <div className="p-2">
-                  <Input
-                    placeholder="Buscar por nombre o SKU..."
+                <div className="p-2 sticky top-0 bg-popover z-10">
+                  <SearchInput
                     value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    className="mb-2"
+                    onChange={setProductSearch}
+                    placeholder="Buscar por nombre o SKU..."
+                    debounceMs={250}
                   />
                 </div>
-                {filteredProducts.map((p) => (
+                {productsToShow.map((p) => (
                   <SelectItem key={p._id} value={p._id}>
                     <span className="font-mono text-xs mr-2">{p.sku}</span>
                     {p.name}
                   </SelectItem>
                 ))}
-                {filteredProducts.length === 0 && (
+                {productsToShow.length === 0 && (
                   <div className="px-4 py-2 text-sm text-muted-foreground">
                     No se encontraron productos
                   </div>

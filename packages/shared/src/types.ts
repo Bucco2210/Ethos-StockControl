@@ -55,6 +55,7 @@ export interface Product extends BaseEntity {
   basePrice: number;
   discountPercent: number;
   finalPrice: number;
+  currency?: 'ARS' | 'USD';
   status: ProductStatus;
   imageUrl?: string;
   createdBy: string;

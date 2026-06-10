@@ -42,4 +42,17 @@ export const stockApi = {
     });
     return res.data;
   },
+
+  getLastSupplier: async (
+    productId: string,
+  ): Promise<LastSupplierResult | null> => {
+    const res = await apiClient.get(`/stock/last-supplier/${productId}`);
+    return res.data;
+  },
 };
+
+export interface LastSupplierResult {
+  supplier: { _id: string; name: string; code?: string };
+  lastDocumentNumber?: string;
+  lastInAt?: string;
+}

@@ -163,13 +163,18 @@ export function DataTable<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as
+                    | { headerClassName?: string }
+                    | undefined;
+                  return (
+                    <TableHead key={header.id} className={meta?.headerClassName}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>

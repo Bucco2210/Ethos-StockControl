@@ -143,4 +143,24 @@ export class StockService {
       .sort({ createdAt: -1 })
       .limit(limit);
   }
+
+  /**
+   * Return the supplier from the most recent IN movement of this product.
+   * Used to pre-fill (disabled) the supplier field on OUT movements,
+   * since each SKU belongs to a single supplier in this system.
+   */
+  async getLastSupplierForProduct(productId: string) {
+    const lastIn = await this.movementModel
+      .findOne({ productId, type: MovementType.IN, supplierId: { $ne: null } })
+      .populate('supplierId', 'name code')
+      .sort({ createdAt: -1 })
+      .select('supplierId documentNumber createdAt');
+
+    if (!lastIn?.supplierId) return null;
+    return {
+      supplier: lastIn.supplierId,
+      lastDocumentNumber: lastIn.documentNumber,
+      lastInAt: (lastIn as any).createdAt,
+    };
+  }
 }
