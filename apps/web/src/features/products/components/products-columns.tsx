@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Pencil, Trash2, ArrowUpDown, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, ArrowUpDown, AlertTriangle, QrCode } from 'lucide-react';
 import type { Product } from '@ethos/shared';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'secondary' | 'destructive' }> = {
@@ -22,6 +22,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'secon
 interface ColumnsConfig {
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
+  onShowQr: (product: Product) => void;
   canEdit: boolean;
   canDelete: boolean;
 }
@@ -29,6 +30,7 @@ interface ColumnsConfig {
 export function getProductColumns({
   onEdit,
   onDelete,
+  onShowQr,
   canEdit,
   canDelete,
 }: ColumnsConfig): ColumnDef<Product>[] {
@@ -135,39 +137,41 @@ export function getProductColumns({
     },
   ];
 
-  if (canEdit || canDelete) {
-    columns.push({
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {canEdit && (
-              <DropdownMenuItem onClick={() => onEdit(row.original)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar
-              </DropdownMenuItem>
-            )}
-            {canEdit && canDelete && <DropdownMenuSeparator />}
-            {canDelete && (
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => onDelete(row.original)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    });
-  }
+  columns.push({
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onShowQr(row.original)}>
+            <QrCode className="mr-2 h-4 w-4" />
+            Ver QR
+          </DropdownMenuItem>
+          {canEdit && <DropdownMenuSeparator />}
+          {canEdit && (
+            <DropdownMenuItem onClick={() => onEdit(row.original)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => onDelete(row.original)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+  });
 
   return columns;
 }

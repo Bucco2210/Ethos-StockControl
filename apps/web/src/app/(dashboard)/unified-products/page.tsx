@@ -67,7 +67,7 @@ export default function UnifiedProductsPage() {
         <div>
           <h1 className="text-2xl font-bold">Productos Unificados</h1>
           <p className="text-muted-foreground">
-            Gestión de productos con comparación de precios entre proveedores
+            Productos consolidados a partir de varias listas de proveedores. Compará precios, elegí el proveedor más conveniente y definí el margen de ganancia para calcular el precio de venta.
           </p>
         </div>
         <div className="flex gap-2">

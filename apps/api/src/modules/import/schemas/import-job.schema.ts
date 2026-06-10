@@ -65,6 +65,22 @@ export class ImportJob {
 
   @Prop()
   completedAt?: Date;
+
+  // Snapshot of supplier-product values before this import was applied, used by revert()
+  @Prop({ type: Array, default: [] })
+  previousValues: Array<{
+    supplierProductId: string;
+    wasCreated: boolean;
+    basePrice?: number;
+    discountPercent?: number;
+    supplierName?: string;
+  }>;
+
+  @Prop()
+  revertedAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  revertedBy?: Types.ObjectId;
 }
 
 export const ImportJobSchema = SchemaFactory.createForClass(ImportJob);

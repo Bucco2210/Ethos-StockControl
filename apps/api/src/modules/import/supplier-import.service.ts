@@ -9,9 +9,13 @@ import { ParsedSupplierRow, ParsedSupplierList } from './parsers/suppliers/suppl
 import { SupplierProductsService } from '../supplier-products/supplier-products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { MappingSettingsService } from '../mapping-settings/mapping-settings.service';
+import { ProductsService } from '../products/products.service';
+import { FamiliesService } from '../families/families.service';
 import { ImportStatus } from '../../common/constants';
 import { UnifiedProduct } from '../unified-products/schemas/unified-product.schema';
 import { SupplierProduct } from '../supplier-products/schemas/supplier-product.schema';
+
+const DEFAULT_IMPACT_FAMILY = 'Sin clasificar';
 
 export interface SupplierValidatedRow {
   rowNumber: number;
@@ -37,6 +41,8 @@ export class SupplierImportService {
     private supplierProductsService: SupplierProductsService,
     private suppliersService: SuppliersService,
     private mappingSettingsService: MappingSettingsService,
+    private productsService: ProductsService,
+    private familiesService: FamiliesService,
   ) {}
 
   /**
@@ -272,12 +278,19 @@ export class SupplierImportService {
     let supplierProductsCreated = 0;
     let supplierProductsUpdated = 0;
     const errors: Array<{ row: number; message: string }> = [];
+    const previousValues: ImportJobDocument['previousValues'] = [];
 
     for (const row of validRows) {
       try {
         const data = row.data as Record<string, any>;
 
-        const { isNew } = await this.supplierProductsService.createOrUpdate({
+        // Capture previous values so revert() can restore them
+        const existingBefore = await this.supplierProductModel.findOne({
+          supplierId: new Types.ObjectId(job.supplierId!.toString()),
+          supplierSku: data.supplierSku,
+        });
+
+        const { product, isNew } = await this.supplierProductsService.createOrUpdate({
           supplierId: job.supplierId!.toString(),
           supplierSku: data.supplierSku,
           supplierName: data.supplierName,
@@ -289,6 +302,21 @@ export class SupplierImportService {
           currency: data.currency,
           metadata: data.metadata,
         });
+
+        previousValues.push(
+          isNew
+            ? {
+                supplierProductId: product._id.toString(),
+                wasCreated: true,
+              }
+            : {
+                supplierProductId: product._id.toString(),
+                wasCreated: false,
+                basePrice: existingBefore!.basePrice,
+                discountPercent: existingBefore!.discountPercent,
+                supplierName: existingBefore!.supplierName,
+              },
+        );
 
         if (isNew) {
           supplierProductsCreated++;
@@ -302,6 +330,8 @@ export class SupplierImportService {
         });
       }
     }
+
+    job.previousValues = previousValues;
 
     // Auto-map if enabled
     let autoMapped = 0;
@@ -531,5 +561,163 @@ export class SupplierImportService {
     const job = await this.importJobModel.findById(jobId);
     if (!job) throw new NotFoundException('Import job no encontrado');
     return job;
+  }
+
+  /**
+   * Push the supplier products from this job into the Products + Stock catalog.
+   * - SKU match → update basePrice + discountPercent (stock untouched).
+   * - No match → create a new Product with stock 0 under the default family.
+   */
+  async impactStock(jobId: string, userId: string) {
+    const job = await this.getJob(jobId);
+    if (job.importType !== 'supplier_products') {
+      throw new BadRequestException('Este job no es de tipo supplier_products');
+    }
+    if (job.status !== ImportStatus.COMPLETED) {
+      throw new BadRequestException(
+        'El job debe estar completado antes de impactar en stock',
+      );
+    }
+
+    const defaultFamily = await this.familiesService.findOrCreateByName(
+      DEFAULT_IMPACT_FAMILY,
+    );
+    const defaultFamilyId = defaultFamily._id.toString();
+
+    const validRows = job.previewData.filter((r) => r.status === 'valid');
+    let productsCreated = 0;
+    let productsUpdated = 0;
+    const errors: Array<{ row: number; message: string }> = [];
+
+    for (const row of validRows) {
+      try {
+        const data = row.data as Record<string, any>;
+        const sku = String(data.supplierSku ?? '').trim().toUpperCase();
+        if (!sku) {
+          errors.push({ row: row.rowNumber, message: 'SKU vacío' });
+          continue;
+        }
+
+        const basePrice = Number(data.basePrice ?? 0);
+        const discountPercent = Number(data.discountPercent ?? 0);
+        const existing = await this.productsService.findBySku(sku);
+
+        if (existing) {
+          await this.productsService.update(existing._id.toString(), {
+            basePrice,
+            discountPercent,
+          });
+          productsUpdated++;
+        } else {
+          await this.productsService.create(
+            {
+              sku,
+              name: String(data.supplierName ?? sku),
+              description: data.supplierDescription || undefined,
+              familyId: defaultFamilyId,
+              stock: 0,
+              stockMin: 0,
+              basePrice,
+              discountPercent,
+            },
+            userId,
+          );
+          productsCreated++;
+        }
+      } catch (err: any) {
+        errors.push({
+          row: row.rowNumber,
+          message: err.message || 'Error desconocido',
+        });
+      }
+    }
+
+    return {
+      jobId: job._id,
+      productsCreated,
+      productsUpdated,
+      errors,
+    };
+  }
+
+  /**
+   * Revert a completed supplier import:
+   * - SupplierProducts created by this job → deleted
+   * - SupplierProducts that were updated → restored to their previous basePrice/discountPercent
+   */
+  async revert(jobId: string, userId: string) {
+    const job = await this.getJob(jobId);
+    if (job.importType !== 'supplier_products') {
+      throw new BadRequestException('Solo se pueden revertir importaciones de proveedor');
+    }
+    if (job.status === ImportStatus.REVERTED) {
+      throw new BadRequestException('Esta importación ya fue revertida');
+    }
+    if (job.status !== ImportStatus.COMPLETED) {
+      throw new BadRequestException('Solo se pueden revertir importaciones completadas');
+    }
+    if (!job.previousValues || job.previousValues.length === 0) {
+      throw new BadRequestException(
+        'Esta importación no tiene snapshot guardado y no se puede revertir',
+      );
+    }
+
+    let restored = 0;
+    let deleted = 0;
+    const errors: Array<{ message: string }> = [];
+
+    for (const snapshot of job.previousValues) {
+      try {
+        const sp = await this.supplierProductModel.findById(snapshot.supplierProductId);
+        if (!sp) {
+          errors.push({ message: `Producto ${snapshot.supplierProductId} ya no existe` });
+          continue;
+        }
+
+        if (snapshot.wasCreated) {
+          // Unlink any unified product that selected this supplier product
+          await this.unifiedProductModel.updateMany(
+            { selectedSupplierProductId: sp._id },
+            { $unset: { selectedSupplierProductId: '', selectedCost: '' } },
+          );
+          await sp.deleteOne();
+          deleted++;
+        } else {
+          if (snapshot.basePrice !== undefined) sp.basePrice = snapshot.basePrice;
+          if (snapshot.discountPercent !== undefined) sp.discountPercent = snapshot.discountPercent;
+          if (snapshot.supplierName) sp.supplierName = snapshot.supplierName;
+          await sp.save();
+          restored++;
+        }
+      } catch (err: any) {
+        errors.push({ message: err.message || 'Error desconocido' });
+      }
+    }
+
+    job.status = ImportStatus.REVERTED;
+    job.revertedAt = new Date();
+    job.revertedBy = new Types.ObjectId(userId);
+    await job.save();
+
+    return {
+      jobId: job._id,
+      restored,
+      deleted,
+      errors,
+    };
+  }
+
+  /**
+   * Team-wide history of supplier imports, with supplier + uploader populated.
+   */
+  async getHistory(limit = 50) {
+    return this.importJobModel
+      .find({ importType: 'supplier_products' })
+      .populate('supplierId', 'name code')
+      .populate('uploadedBy', 'firstName lastName')
+      .populate('revertedBy', 'firstName lastName')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('-previewData -previousValues'); // exclude heavy arrays from list view
   }
 }

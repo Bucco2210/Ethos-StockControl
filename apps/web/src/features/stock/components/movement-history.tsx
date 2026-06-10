@@ -70,6 +70,17 @@ export function MovementHistory({ open, onOpenChange, product }: MovementHistory
                           minute: '2-digit',
                         })}
                       </p>
+                      {(m.documentNumber || m.supplierId) && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {typeof m.supplierId === 'object' && m.supplierId?.name && (
+                            <span>Prov: <span className="font-medium">{m.supplierId.name}</span></span>
+                          )}
+                          {typeof m.supplierId === 'object' && m.supplierId?.name && m.documentNumber && ' · '}
+                          {m.documentNumber && (
+                            <span>Remito: <span className="font-mono">{m.documentNumber}</span></span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">

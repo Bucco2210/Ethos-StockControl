@@ -24,6 +24,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
+export interface ServerPaginationConfig {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (pageIndex: number) => void;
+  search: string;
+  onSearchChange: (search: string) => void;
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -33,6 +42,8 @@ interface DataTableProps<TData, TValue> {
   searchKeys?: string[];
   searchPlaceholder?: string;
   toolbar?: React.ReactNode;
+  /** When provided, pagination + search are driven by the server. */
+  serverPagination?: ServerPaginationConfig;
 }
 
 export function DataTable<TData, TValue>({
@@ -42,21 +53,24 @@ export function DataTable<TData, TValue>({
   searchKeys,
   searchPlaceholder = 'Buscar...',
   toolbar,
+  serverPagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
+  const isServerMode = !!serverPagination;
   const effectiveKeys = searchKeys || (searchKey ? [searchKey] : []);
-  const useGlobalSearch = effectiveKeys.length > 1;
+  const showSearchInput = isServerMode || effectiveKeys.length > 0;
+  const useGlobalSearch = !isServerMode && effectiveKeys.length > 1;
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(isServerMode ? {} : { getPaginationRowModel: getPaginationRowModel() }),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    ...(isServerMode ? {} : { getFilteredRowModel: getFilteredRowModel() }),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: useGlobalSearch ? setGlobalFilter : undefined,
@@ -69,33 +83,67 @@ export function DataTable<TData, TValue>({
           });
         }
       : undefined,
+    manualPagination: isServerMode,
+    pageCount: isServerMode
+      ? Math.max(1, Math.ceil(serverPagination!.totalCount / serverPagination!.pageSize))
+      : undefined,
     state: {
       sorting,
       columnFilters,
       ...(useGlobalSearch ? { globalFilter } : {}),
+      ...(isServerMode
+        ? {
+            pagination: {
+              pageIndex: serverPagination!.pageIndex,
+              pageSize: serverPagination!.pageSize,
+            },
+          }
+        : {}),
     },
-    initialState: { pagination: { pageSize: 10 } },
+    ...(isServerMode ? {} : { initialState: { pagination: { pageSize: 10 } } }),
   });
 
-  const searchValue = useGlobalSearch
-    ? globalFilter
-    : effectiveKeys.length === 1
-      ? (table.getColumn(effectiveKeys[0])?.getFilterValue() as string) ?? ''
-      : '';
+  const searchValue = isServerMode
+    ? serverPagination!.search
+    : useGlobalSearch
+      ? globalFilter
+      : effectiveKeys.length === 1
+        ? (table.getColumn(effectiveKeys[0])?.getFilterValue() as string) ?? ''
+        : '';
 
   const onSearchChange = (value: string) => {
-    if (useGlobalSearch) {
+    if (isServerMode) {
+      serverPagination!.onSearchChange(value);
+    } else if (useGlobalSearch) {
       setGlobalFilter(value);
     } else if (effectiveKeys.length === 1) {
       table.getColumn(effectiveKeys[0])?.setFilterValue(value);
     }
   };
 
+  const goToPage = (next: number) => {
+    if (isServerMode) {
+      serverPagination!.onPageChange(next);
+    } else {
+      table.setPageIndex(next);
+    }
+  };
+
+  const currentPageIndex = isServerMode
+    ? serverPagination!.pageIndex
+    : table.getState().pagination.pageIndex;
+  const pageCount = table.getPageCount();
+  const canPrev = currentPageIndex > 0;
+  const canNext = currentPageIndex < pageCount - 1;
+  const resultsLabel = isServerMode
+    ? `${serverPagination!.totalCount} resultado(s)`
+    : `${table.getFilteredRowModel().rows.length} resultado(s)`;
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
-        {effectiveKeys.length > 0 && (
+        {showSearchInput && (
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -149,27 +197,24 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} resultado(s)
-        </p>
+        <p className="text-sm text-muted-foreground">{resultsLabel}</p>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => goToPage(currentPageIndex - 1)}
+            disabled={!canPrev}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm text-muted-foreground">
-            Pág. {table.getState().pagination.pageIndex + 1} de{' '}
-            {table.getPageCount()}
+            Pág. {currentPageIndex + 1} de {pageCount}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => goToPage(currentPageIndex + 1)}
+            disabled={!canNext}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

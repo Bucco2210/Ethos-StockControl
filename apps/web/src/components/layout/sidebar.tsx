@@ -17,6 +17,8 @@ import {
   ClipboardList,
   Settings2,
   Truck,
+  History,
+  QrCode,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
@@ -36,6 +38,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: Permission.PRODUCTS_READ },
   { name: 'Stock', href: '/stock', icon: BarChart3, permission: Permission.STOCK_READ },
+  { name: 'Escanear QR', href: '/scan', icon: QrCode, permission: Permission.STOCK_ADJUST },
   { name: 'Kardex', href: '/kardex', icon: ClipboardList, permission: Permission.KARDEX_READ },
   { name: 'Productos', href: '/products', icon: Package, permission: Permission.PRODUCTS_READ },
   { name: 'Unificados', href: '/unified-products', icon: Layers, permission: Permission.PRODUCTS_READ },
@@ -43,6 +46,7 @@ const navigation: NavItem[] = [
   { name: 'Proveedores', href: '/suppliers', icon: Building2, permission: Permission.PRODUCTS_READ },
   { name: 'Lista por Proveedor', href: '/supplier-products', icon: Truck, permission: Permission.PRODUCTS_READ },
   { name: 'Importar', href: '/import', icon: Upload, permission: Permission.IMPORT_EXECUTE },
+  { name: 'Historial de listas', href: '/import-history', icon: History, permission: Permission.IMPORT_READ },
   { name: 'Auto-mapeo', href: '/mapping-settings', icon: Settings2, permission: Permission.SUPPLIERS_MANAGE },
   { name: 'Usuarios', href: '/users', icon: Users, permission: Permission.USERS_READ },
 ];

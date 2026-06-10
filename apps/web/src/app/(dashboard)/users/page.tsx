@@ -60,7 +60,9 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Usuarios</h1>
-          <p className="text-muted-foreground">Gestión de usuarios y roles del sistema</p>
+          <p className="text-muted-foreground">
+            Alta de usuarios y asignación de roles del sistema, que determinan a qué módulos puede acceder cada persona.
+          </p>
         </div>
       </div>
 

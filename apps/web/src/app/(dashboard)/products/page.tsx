@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +22,7 @@ import { DataTable } from '@/components/shared/data-table';
 import { useProducts, useDeleteProduct } from '@/features/products/api/use-products';
 import { getProductColumns } from '@/features/products/components/products-columns';
 import { ProductDialog } from '@/features/products/components/product-dialog';
+import { ProductQrDialog } from '@/features/products/components/product-qr-dialog';
 import { useFamilies } from '@/features/families/api/use-families';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Permission, ProductStatus } from '@ethos/shared';
@@ -33,14 +34,32 @@ export default function ProductsPage() {
   const canEdit = hasPermission(Permission.PRODUCTS_UPDATE);
   const canDelete = hasPermission(Permission.PRODUCTS_DELETE);
 
-  // Filters
+  const PAGE_SIZE = 10;
+
+  // Filters + server pagination state
   const [familyFilter, setFamilyFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [pageIndex, setPageIndex] = useState(0); // 0-based
+
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to first page when filters or search change
+  useEffect(() => {
+    setPageIndex(0);
+  }, [familyFilter, statusFilter, debouncedSearch]);
 
   const { data, isLoading } = useProducts({
     familyId: familyFilter && familyFilter !== 'all' ? familyFilter : undefined,
     status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
-    limit: 50,
+    search: debouncedSearch.trim() || undefined,
+    page: pageIndex + 1,
+    limit: PAGE_SIZE,
   });
   const { data: families } = useFamilies();
   const deleteMutation = useDeleteProduct();
@@ -50,6 +69,8 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrProduct, setQrProduct] = useState<Product | null>(null);
 
   const columns = useMemo(
     () =>
@@ -61,6 +82,10 @@ export default function ProductsPage() {
         onDelete: (p) => {
           setDeletingProduct(p);
           setDeleteDialogOpen(true);
+        },
+        onShowQr: (p) => {
+          setQrProduct(p);
+          setQrDialogOpen(true);
         },
         canEdit,
         canDelete,
@@ -92,7 +117,9 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Productos</h1>
-        <p className="text-muted-foreground">Gestión del catálogo de productos</p>
+        <p className="text-muted-foreground">
+          Catálogo maestro del inventario: alta, edición, precios y stock mínimo de cada producto.
+        </p>
       </div>
 
       {/* Filters */}
@@ -138,8 +165,15 @@ export default function ProductsPage() {
       <DataTable
         columns={columns}
         data={data?.data ?? []}
-        searchKeys={['name', 'sku']}
         searchPlaceholder="Buscar por nombre o SKU..."
+        serverPagination={{
+          pageIndex,
+          pageSize: PAGE_SIZE,
+          totalCount: data?.total ?? 0,
+          onPageChange: setPageIndex,
+          search,
+          onSearchChange: setSearch,
+        }}
         toolbar={
           canCreate ? (
             <Button onClick={() => setDialogOpen(true)}>
@@ -154,6 +188,12 @@ export default function ProductsPage() {
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         product={editingProduct}
+      />
+
+      <ProductQrDialog
+        open={qrDialogOpen}
+        onOpenChange={setQrDialogOpen}
+        product={qrProduct}
       />
 
       {/* Delete confirmation */}
